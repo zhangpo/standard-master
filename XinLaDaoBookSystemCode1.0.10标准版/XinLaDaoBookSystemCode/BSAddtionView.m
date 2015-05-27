@@ -94,7 +94,7 @@
 //    NSLog(@"%@",arySelectedAddtions);
     
     if ([tfAddition.text length]>0){
-        NSDictionary *dicCustom = [NSDictionary dictionaryWithObjectsAndKeys:tfAddition.text,@"FoodFuJia_Des",@"0.0",@"FoodFujia_Checked",nil];
+        NSDictionary *dicCustom = [NSDictionary dictionaryWithObjectsAndKeys:tfAddition.text,@"FNAME",@"0.0",@"FPRICE",nil];
         [aryMut addObject:dicCustom];
         NSLog(@"%@",aryMut);
     }
@@ -122,7 +122,7 @@
     [cell setContent:[ary objectAtIndex:indexPath.row] withTag:1];
     BOOL selected = NO;
     for (NSDictionary *dic in arySelectedAddtions){
-        if ([[[ary objectAtIndex:indexPath.row] objectForKey:@"FOODFUJIA_ID"] isEqualToString:[dic objectForKey:@"FOODFUJIA_ID"]]){
+        if ([[[ary objectAtIndex:indexPath.row] objectForKey:@"FCODE"] isEqualToString:[dic objectForKey:@"FCODE"]]){
             selected = YES;
             break;
         }
@@ -157,7 +157,7 @@
     NSLog(@"%@",arySelectedAddtions);
     for (NSDictionary *dicAdd in arySelectedAddtions){
         NSLog(@"%@",dicAdd);
-        if ([[dicAdd objectForKey:@"FOODFUJIA_ID"] isEqualToString:[[aryAdditions objectAtIndex:indexPath.row] objectForKey:@"FOODFUJIA_ID"]]){
+        if ([[dicAdd objectForKey:@"FCODE"] isEqualToString:[[aryAdditions objectAtIndex:indexPath.row] objectForKey:@"FCODE"]]){
             needAdd = NO;
             index = [arySelectedAddtions indexOfObject:dicAdd];
             break;
@@ -202,8 +202,8 @@ NSInteger intSort(id num1,id num2,void *context){
         for (int i=0;i<count;i++){
             NSDictionary *dic = [ary objectAtIndex:i];
             
-            NSString *strINIT = [[dic objectForKey:@"INIT"] uppercaseString];
-            NSString *strDES = [dic objectForKey:@"FoodFuJia_Des"];
+            NSString *strINIT = [[dic objectForKey:@"FNAME"] uppercaseString];
+            NSString *strDES = [dic objectForKey:@"FCODE"];
             if ([strINIT rangeOfString:searchText].location!=NSNotFound ||
                 [strDES rangeOfString:searchText].location!=NSNotFound){
                 [aryResult addObject:dic];

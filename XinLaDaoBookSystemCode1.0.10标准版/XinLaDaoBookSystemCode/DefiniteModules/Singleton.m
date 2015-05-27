@@ -12,7 +12,7 @@
 @synthesize dishArray=_dishArray,order=_order;
 @synthesize userInfo=_userInfo;
 @synthesize Seat=_Seat,CheckNum=_CheckNum,man=_man,woman=_woman,quandan=_quandan;
-@synthesize isYudian=_isYudian,userName=_userName,SELEVIP=_SELEVIP,WaitNum=_WaitNum;
+@synthesize isYudian=_isYudian,userName=_userName,SELEVIP=_SELEVIP,WaitNum=_WaitNum,jurisdiction=_jurisdiction,tableName=_tableName,VIPCardInfo=_VIPCardInfo,cardMessage=_cardMessage;
 static Singleton *_sharedSingleton;
 +(Singleton *)sharedSingleton
 {

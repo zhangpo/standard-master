@@ -24,6 +24,7 @@
     self = [super initWithFrame:frame];
     if (self) {
         // Initialization code
+        [self setTitle:@"固定附加项"];
         UIScrollView *scroll=[[UIScrollView alloc] initWithFrame:CGRectMake(10, 50, frame.size.width, frame.size.height-150)];
 //        [scroll setBackgroundColor:[UIColor redColor]];
         [self addSubview:scroll];
@@ -33,24 +34,28 @@
         /**
          *  查询该菜品的所有的固定附加项
          */
-        NSArray *array=[bs webSelectPrivateAddition:pcode];
+        NSArray *array=[bs SelectPrivateAddition:pcode];
         int i=0;
         int k=0;
-        for (NSArray *ary in array) {
+        for (NSMutableArray *ary in array) {
             //显示类别标题
             UILabel *lable=[[UILabel alloc] initWithFrame:CGRectMake(0,i, 300, 30)];
             [scroll addSubview:lable];
-            lable.text=[NSString stringWithFormat:@"%@ %@-%@",[[ary lastObject] objectForKey:@"typvname"],[[ary lastObject] objectForKey:@"typmincount"],[[ary lastObject] objectForKey:@"typmaxcount"]];
+            NSDictionary *dict1=[[NSDictionary alloc] initWithDictionary:[ary objectAtIndex:0]];
+            lable.text=[NSString stringWithFormat:@"%@ %@-%@",[[ary objectAtIndex:0] objectForKey:@"FNAME"],[[ary objectAtIndex:0] objectForKey:@"MINCNT"],[[ary objectAtIndex:0] objectForKey:@"MAXCNT"]];
             i+=30;
             int j=0;
             /**
              *  显示类别下的按钮
              */
+            [ary removeObjectAtIndex:0];
             NSMutableArray *btnAry=[NSMutableArray array];
             for (NSDictionary *dict in ary) {
                 AKComboButton *button=[AKComboButton buttonWithType:UIButtonTypeCustom];
-                [button setTitle:[dict objectForKey:@"FoodFuJia_Des"] forState:UIControlStateNormal];
+                [button setTitle:[dict objectForKey:@"FNAME"] forState:UIControlStateNormal];
                 button.lblCount.text=[NSString stringWithFormat:@"%@-%@",[dict objectForKey:@"MINCNT"],[dict objectForKey:@"MAXCNT"]];
+                [dict setValue:[dict1 objectForKey:@"MAXCNT"] forKey:@"typmaxcount"];
+                [dict setValue:[dict1 objectForKey:@"MINCNT"] forKey:@"typmincount"];
                 button.dataInfo=dict;
                 button.btnTag=k;
                 [button setBackgroundImage:[[CVLocalizationSetting sharedInstance] imgWithContentsOfFile:@"product.png"] forState:UIControlStateNormal];
@@ -106,7 +111,7 @@
                 /**
                  *  根据主键删除附加项
                  */
-                if ([[dict objectForKey:@"pk_redefine"] isEqualToString:[btn.dataInfo objectForKey:@"pk_redefine"]]) {
+                if ([[dict objectForKey:@"FCODE"] isEqualToString:[btn.dataInfo objectForKey:@"FCODE"]]) {
                     [_selectArray removeObject:dict];
                     break;
                 }
@@ -152,7 +157,7 @@
         btn.titleLabel1.text=[NSString stringWithFormat:@"%d",[btn.titleLabel1.text intValue]+1];
         [info setObject:btn.titleLabel1.text forKey:@"total"];
         for (NSDictionary *dict in _selectArray) {
-            if ([[dict objectForKey:@"pk_redefine"] isEqualToString:[info objectForKey:@"pk_redefine"]]) {
+            if ([[dict objectForKey:@"FCODE"] isEqualToString:[info objectForKey:@"FCODE"]]) {
                 [_selectArray removeObject:dict];
                 [_selectArray addObject:info];
                 break;
@@ -163,7 +168,29 @@
 -(void)buttonClick:(UIButton *)btn
 {
     if (btn.tag==0) {
+        int j=0;
+        for (NSArray *buttons in _buttonArray) {
+            int i=0;
+            NSDictionary *dict=((AKComboButton *)[buttons lastObject]).dataInfo;
+            for (NSDictionary *addition in _selectArray) {
+                if ([[dict objectForKey:@"PRODUCTTC_ORDER"] isEqualToString:[addition objectForKey:@"PRODUCTTC_ORDER"]]) {
+                    i++;
+                }
+                /**
+                 *  判断每一层是否选择完毕
+                 */
+                if (i>=[[dict objectForKey:@"typmincount"] intValue]||[[dict objectForKey:@"typmincount"] intValue]==0) {
+                    j+=1;
+                    break;
+                }
+            }
+        }
+        if (j<[_buttonArray count]) {
+            [_delegate privateAdditionSelected:nil];
+        }else
+        {
         [_delegate privateAdditionSelected:_selectArray];
+        }
     }else if (btn.tag==1){
         _total=10000;
     }else if (btn.tag==2){

@@ -12,18 +12,22 @@
 {
     BOOL     _isYudian;
 }
-@property(nonatomic,retain)NSMutableArray *dishArray;
+@property(nonatomic,strong)NSMutableArray *dishArray;
 @property(nonatomic,strong)NSDictionary *userInfo;
-@property(nonatomic,copy)NSString *Seat;
-@property(nonatomic,copy)NSString *CheckNum;
-@property(nonatomic,copy)NSString *Time;
-@property(nonatomic,copy)NSString *man;
-@property(nonatomic,copy)NSString *woman;
-@property(nonatomic,copy)NSString *userName;
-@property(nonatomic,assign)int segment;
-@property(nonatomic,retain)NSMutableArray *order;
-@property(nonatomic,assign)BOOL quandan;
-@property(nonatomic,assign)BOOL SELEVIP;
+@property(nonatomic,strong)NSString *Seat;
+@property(nonatomic,strong)NSString *tableName;
+@property(nonatomic,strong)NSString *CheckNum;
+@property(nonatomic,strong)NSString *Time;
+@property(nonatomic,strong)NSString *man;
+@property(nonatomic,strong)NSString *woman;
+@property(nonatomic,strong)NSString *jurisdiction;
+@property(nonatomic,strong)NSString *userName;
+@property(nonatomic,strong)NSDictionary *VIPCardInfo;
+@property(nonatomic,strong)NSDictionary *cardMessage;
+@property(nonatomic)int segment;
+@property(nonatomic,strong)NSMutableArray *order;
+@property(nonatomic)BOOL quandan;
+@property(nonatomic)BOOL SELEVIP;
 @property(nonatomic,strong)NSString *WaitNum;
 @property(nonatomic)BOOL isYudian;
 +(Singleton *)sharedSingleton;

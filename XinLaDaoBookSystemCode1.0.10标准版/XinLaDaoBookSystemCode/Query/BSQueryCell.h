@@ -18,7 +18,7 @@
 
 @interface BSQueryCell : UITableViewCell
 {
-     id<BSQueryCellDelegate>_delegate;
+    __weak id<BSQueryCellDelegate>_delegate;
     
 }
 @property(nonatomic,strong)NSDictionary *dataDic;
@@ -26,5 +26,5 @@
 @property(nonatomic,strong)UILabel *lblCame,*lblCount,*lblPrice,*lblUnit,*lblcui,*lbltalPreice,*over,*lblstart,*lblfujia,*lblhua;
 @property(nonatomic,strong)UIView *view;
 @property(nonatomic,strong)UIImageView *lblover;
-@property(nonatomic,retain)id<BSQueryCellDelegate>delegete;
+@property(nonatomic,weak)__weak id<BSQueryCellDelegate>delegete;
 @end

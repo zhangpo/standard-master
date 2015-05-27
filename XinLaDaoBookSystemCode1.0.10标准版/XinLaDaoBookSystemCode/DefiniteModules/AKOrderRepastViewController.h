@@ -12,7 +12,9 @@
 #import "BSDataProvider.h"//数据请求类
 #import "AKMySegmentAndView.h"//顶上信息类
 #import "BSAddtionView.h"//附加项累
-@interface AKOrderRepastViewController : UIViewController<UISearchBarDelegate,AKMySegmentAndViewDelegate,AdditionViewDelegate,UIAlertViewDelegate,UITextFieldDelegate>
+#import "AKPrivateAdditionView.h"
+#import "AKAdditionView.h"
+@interface AKOrderRepastViewController : UIViewController<UISearchBarDelegate,AKMySegmentAndViewDelegate,AdditionViewDelegate,UIAlertViewDelegate,UITextFieldDelegate,AKPrivateAdditionDelegate,UIActionSheetDelegate,AKAdditionViewDelegate>
 {
     NSArray *classArray;
     IBOutlet UIScrollView *aScrollView;

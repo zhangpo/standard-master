@@ -7,7 +7,7 @@
 //
 
 #import "AKOrederClassButton.h"
-#import "BSDataProvider.h"8
+#import "BSDataProvider.h"
 
 @implementation AKOrederClassButton
 @synthesize button=_button,label=_label;

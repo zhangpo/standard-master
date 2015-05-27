@@ -24,8 +24,10 @@
 #import "SVProgressHUD.h"
 #import "PaymentSelect.h"
 #import "AKsNewVipViewController.h"
-#import "AKMySegmentAndView.h"
 #import "CVLocalizationSetting.h"
+#import "AKForecastSalesViewController.h"
+#import "AKQueryViewController.h"
+
 
 //#import "CVLocalizationSetting.h"
 @interface AKDeskMainViewController ()
@@ -41,14 +43,18 @@
     NSMutableArray          *_dataArray;
     NSMutableArray          *_youmianShowArray;
     AKschangeTableView      *_akschangeTable;
-    
+    NSDictionary            *tableInfo;
     AKsYudianShow           *_yuDianView;
     NSString                *_oldTableNum;
     NSString                *_newTableNum;
     AKsRemoveYudingView     *_removeYudianView;
     NSMutableDictionary     *_tabledict;
+    WebChildrenTable        *web;
     AKsOpenSucceed          *_openSucceed;
     UIPanGestureRecognizer  *_pan;
+    NSMutableArray          *_freeTableArray;
+    NSMutableArray          *_occupationTableArray;
+    AKShouldCheckView       *_shouldCheck;
 }
 
 
@@ -77,17 +83,19 @@
          */
         [self updataTable];
     });
-    
-    
-    AKsNetAccessClass *netAccess=[AKsNetAccessClass sharedNetAccess];
-    netAccess.zhangdanId=NULL;
-    netAccess.PeopleManNum=NULL;
-    netAccess.PeopleWomanNum=NULL;
-    netAccess.phoneNum=NULL;
-    netAccess.SettlemenVip=NO;
-    netAccess.showVipMessageDict=nil;
-    netAccess.yingfuMoney=NULL;
-    netAccess.isVipShow=NO;
+    [_shouldCheck removeFromSuperview];
+    [self.view addSubview:_shouldCheck];
+    _shouldCheck.frame=CGRectMake(20, 200, 30, 30);
+    [_shouldCheck addGestureRecognizer:_pan];
+//    AKsNetAccessClass *netAccess=[AKsNetAccessClass sharedNetAccess];
+//    netAccess.zhangdanId=NULL;
+//    netAccess.PeopleManNum=NULL;
+//    netAccess.PeopleWomanNum=NULL;
+//    netAccess.phoneNum=NULL;
+//    netAccess.SettlemenVip=NO;
+//    netAccess.showVipMessageDict=nil;
+//    netAccess.yingfuMoney=NULL;
+//    netAccess.isVipShow=NO;
     
     
     
@@ -105,16 +113,19 @@
         [_waitView removeFromSuperview];
         _waitView = nil;
     }
+    [_shouldCheck startTimer];
 }
 
 - (void)viewDidLoad
 {
     [super viewDidLoad];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(logout) name:@"LOGOUT" object:nil];
     BSDataProvider *dp = [[BSDataProvider alloc] init];
     /**
      *  获取区域
      */
     NSArray *array=[dp getArea];
+    
     NSMutableArray *array1=[[NSMutableArray alloc] init];
     //查询状态
     CVLocalizationSetting *langSetting = [CVLocalizationSetting sharedInstance];
@@ -164,7 +175,7 @@
     scvTables = [[UIScrollView alloc] initWithFrame:CGRectMake(25, 100, 718, 850)];
     [self.view addSubview:scvTables];
     CVLocalizationSetting *cvlocal=[CVLocalizationSetting sharedInstance];
-    NSArray *array2=[[NSArray alloc] initWithObjects:[cvlocal localizedString:@"Logout"],[cvlocal localizedString:@"Wait"],[cvlocal localizedString:@"Combine Table"],[cvlocal localizedString:@"Change Table"],[cvlocal localizedString:@"Select Order"],[cvlocal localizedString:@"Updata"], nil];
+    NSArray *array2=[[NSArray alloc] initWithObjects:[cvlocal localizedString:@"Logout"],[cvlocal localizedString:@"Wait"],[cvlocal localizedString:@"Combine Table"],[cvlocal localizedString:@"Change Table"],[cvlocal localizedString:@"Select Order"],@"销售预估",[cvlocal localizedString:@"Updata"], nil];
     for (int i=0; i<[array2 count]; i++) {
         UIButton *btn=[UIButton buttonWithType:UIButtonTypeCustom];
         btn.frame=CGRectMake((768-20)/[array2 count]*i, 1024-70, 140, 50);
@@ -187,19 +198,66 @@
         [btn addTarget:self action:@selector(btnClick:) forControlEvents:UIControlEventTouchUpInside];
         [self.view addSubview:btn];
     }
+//    NSArray *array2=[[NSArray alloc] initWithObjects:[cvlocal localizedString:@"Logout"],[cvlocal localizedString:@"Wait"],[cvlocal localizedString:@"Combine Table"],[cvlocal localizedString:@"Change Table"],[cvlocal localizedString:@"Select Order"],[cvlocal localizedString:@"Updata"], nil];
+//    for (int i=0; i<[array2 count]; i++) {
+//        UIButton *btn=[UIButton buttonWithType:UIButtonTypeCustom];
+//        btn.frame=CGRectMake((768-20)/[array2 count]*i, 1024-70, 140, 50);
+//        UILabel *lb=[[UILabel alloc] initWithFrame:CGRectMake(10,20, 130, 30)];
+//        lb.text=[array2 objectAtIndex:i];
+//        if ([[[NSUserDefaults standardUserDefaults]
+//              stringForKey:@"language"] isEqualToString:@"en"])
+//            lb.font=[UIFont fontWithName:@"ArialRoundedMTBold"size:14];
+//        else
+//            lb.font=[UIFont fontWithName:@"ArialRoundedMTBold"size:20];
+//        lb.backgroundColor=[UIColor clearColor];
+//        lb.textColor=[UIColor whiteColor];
+//        [btn addSubview:lb];
+//        [btn setBackgroundImage:[[CVLocalizationSetting sharedInstance] imgWithContentsOfFile:@"cv_rotation_normal_button.png"] forState:UIControlStateNormal];
+//        [btn setBackgroundImage:[[CVLocalizationSetting sharedInstance] imgWithContentsOfFile:@"cv_rotation_highlight_button.png"] forState:UIControlStateHighlighted];
+//        //        [btn setBackgroundImage:[UIImage imageNamed:@"TableButtonRed"] forState:UIControlStateNormal];
+//        //        [btn setTitle:[array objectAtIndex:i] forState:UIControlStateNormal];
+//        btn.tintColor=[UIColor whiteColor];
+//        btn.tag=i+1;
+//        if (btn.tag==6) {
+//            btn.tag=7;
+//        }
+//        
+//        [btn addTarget:self action:@selector(btnClick:) forControlEvents:UIControlEventTouchUpInside];
+//        [self.view addSubview:btn];
+//    }
     [self searchBarInit];
     _pan=[[UIPanGestureRecognizer alloc]initWithTarget:self action:@selector(tuodongView:)];
     _pan.delaysTouchesBegan=YES;
+    _shouldCheck=[AKShouldCheckView shared];
+        _shouldCheck.delegate=self;
+    [self.view addSubview:_shouldCheck];
+    [_shouldCheck addGestureRecognizer:_pan];
     
 }
-
+#pragma mark - 要结账单
+-(void)shouldCheckViewClick:(NSDictionary *)checkDic
+{
+//    TABLENUM,a.ORDERID,b.TBLNAME,a.PEOLENUMMAN,a.PEOLENUMWOMEN
+    [Singleton sharedSingleton].man=[checkDic objectForKey:@"PEOLENUMMAN"];
+    [Singleton sharedSingleton].woman=[checkDic objectForKey:@"PEOLENUMWOMEN"];
+    [Singleton sharedSingleton].CheckNum=[checkDic objectForKey:@"ORDERID"];
+    [Singleton sharedSingleton].Seat=[checkDic objectForKey:@"TABLENUM"];
+    [Singleton sharedSingleton].tableName=[checkDic objectForKey:@"TBLNAME"];
+    bs_dispatch_sync_on_main_thread(^{
+        AKQueryViewController *query=[[AKQueryViewController alloc] init];
+        [self.navigationController pushViewController:query animated:YES];
+    });
+}
+-(void)viewWillDisappear:(BOOL)animated
+{
+    [super viewWillDisappear:animated];
+    [_shouldCheck pauseTimer];
+}
 /**
  *  按钮事件
  *
  *  @param btn
  */
-
-
 -(void)btnClick:(UIButton *)btn
 {
     /**
@@ -238,53 +296,86 @@
         /**
          *  并台
          */
-        [[NSUserDefaults standardUserDefaults] setObject:@"multiple" forKey:@"DeskMainButton"];
-        [[NSUserDefaults standardUserDefaults] synchronize];
-        scvTables.userInteractionEnabled=NO;
-        if (!vSwitch){
+        if (!vSwitch) {
             [self dismissViews];
-            vSwitch = [[BSSwitchTableView alloc] initWithFrame:CGRectMake(0, 0, 492, 354)];
-            vSwitch.delegate = self;
-            [vSwitch addGestureRecognizer:_pan];
-            //        vSwitch.center = btnSwitch.center;
-            vSwitch.center = CGPointMake(384, 1004-27);
+            vSwitch=[[AKSwitchTableView alloc] initWithFrame:CGRectMake(0, 0, 660, 790) withTag:2];
+            vSwitch.center = CGPointMake(768/2, (1004-27)/2);
+            vSwitch.currentArray=_occupationTableArray;
+            vSwitch.aimsArray=_occupationTableArray;
+            vSwitch.delegate=self;
             [self.view addSubview:vSwitch];
-            [vSwitch firstAnimation];
-        }
-        else{
+        }else
+        {
             [vSwitch removeFromSuperview];
             vSwitch = nil;
         }
+//        [[NSUserDefaults standardUserDefaults] setObject:@"multiple" forKey:@"DeskMainButton"];
+//        [[NSUserDefaults standardUserDefaults] synchronize];
+//        scvTables.userInteractionEnabled=NO;
+//        if (!vSwitch){
+//            [self dismissViews];
+//            vSwitch = [[BSSwitchTableView alloc] initWithFrame:CGRectMake(0, 0, 492, 354)];
+//            vSwitch.delegate = self;
+//            [vSwitch addGestureRecognizer:_pan];
+//            //        vSwitch.center = btnSwitch.center;
+//            vSwitch.center = CGPointMake(384, 1004-27);
+//            [self.view addSubview:vSwitch];
+//            [vSwitch firstAnimation];
+//        }
+//        else{
+//            [vSwitch removeFromSuperview];
+//            vSwitch = nil;
+//        }
     }else if (btn.tag==4)
     {
         /**
          *  换台
          */
-        scvTables.userInteractionEnabled=NO;
-        [[NSUserDefaults standardUserDefaults] setObject:@"switchTable" forKey:@"DeskMainButton"];
-        [[NSUserDefaults standardUserDefaults] synchronize];
-        if (!vSwitch){
+        if (!vSwitch) {
             [self dismissViews];
-            vSwitch = [[BSSwitchTableView alloc] initWithFrame:CGRectMake(0, 0, 492, 354)];
-            vSwitch.delegate = self;
-            [vSwitch addGestureRecognizer:_pan];
-            //        vSwitch.center = btnSwitch.center;
-            vSwitch.center = CGPointMake(384, 1004-27);
+            vSwitch=[[AKSwitchTableView alloc] initWithFrame:CGRectMake(0, 0, 660, 790) withTag:1];
+            vSwitch.center = CGPointMake(768/2, (1004-27)/2);
+            vSwitch.currentArray=_occupationTableArray;
+            vSwitch.aimsArray=_freeTableArray;
+            vSwitch.delegate=self;
             [self.view addSubview:vSwitch];
-            [vSwitch firstAnimation];
-        }
-        else{
+        }else
+        {
             [vSwitch removeFromSuperview];
             vSwitch = nil;
         }
+        
+//        AKSwitchViewController *switchView=[[AKSwitchViewController alloc] init];
+//        switchView.formerArray=_freeTableArray;
+//        switchView.targetArray=_occupationTableArray;
+//        [self.navigationController pushViewController:switchView animated:YES];
+//        scvTables.userInteractionEnabled=NO;
+//        [[NSUserDefaults standardUserDefaults] setObject:@"switchTable" forKey:@"DeskMainButton"];
+//        [[NSUserDefaults standardUserDefaults] synchronize];
+//        if (!vSwitch){
+//            [self dismissViews];
+//            vSwitch = [[BSSwitchTableView alloc] initWithFrame:CGRectMake(0, 0, 492, 354)];
+//            vSwitch.delegate = self;
+//            [vSwitch addGestureRecognizer:_pan];
+//            //        vSwitch.center = btnSwitch.center;
+//            vSwitch.center = CGPointMake(384, 1004-27);
+//            [self.view addSubview:vSwitch];
+//            [vSwitch firstAnimation];
+//        }
+//        else{
+//            [vSwitch removeFromSuperview];
+//            vSwitch = nil;
+//        }
     }else if (btn.tag==5){
         /**
          *  查询台位信息
          */
-        UIAlertView *alertView = [[UIAlertView alloc]initWithTitle:[[CVLocalizationSetting sharedInstance] localizedString:@"Please enter the Table"] message:nil delegate:self cancelButtonTitle:[[CVLocalizationSetting sharedInstance] localizedString:@"Cancel"] otherButtonTitles:[[CVLocalizationSetting sharedInstance] localizedString:@"OK"],nil];
-        alertView.alertViewStyle = UIAlertViewStylePlainTextInput;
-        alertView.tag = 4;
-        [alertView show];
+        AKSelectCheck *select=[[AKSelectCheck alloc] init];
+        [self.navigationController pushViewController:select animated:YES];
+    }else if (btn.tag==6)
+    {
+        AKForecastSalesViewController *ForecastSales=[[AKForecastSalesViewController alloc] init];
+        [self.navigationController pushViewController:ForecastSales animated:YES];
     }else
     {
         /**
@@ -916,29 +1007,26 @@
     [SVProgressHUD showProgress:-1 status:[[CVLocalizationSetting sharedInstance] localizedString:@"load..."] maskType:SVProgressHUDMaskTypeBlack];
     [NSThread detachNewThreadSelector:@selector(getTableList:) toTarget:self withObject:_tabledict];
 }
+-(void)logout
+{
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        // 耗时的操作
+        BSDataProvider *dp=[[BSDataProvider alloc] init];
+        NSArray *array=[dp logout];
+        [Singleton sharedSingleton].userInfo=nil;
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [Singleton sharedSingleton].userInfo=nil;
+            NSArray *array=[self.navigationController viewControllers];
+            if ([array count]>0) {
+                [self.navigationController popToRootViewControllerAnimated:YES];
+            }
+        });
+    });
+}
 - (void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex{
     if (alertView.tag==2) {
         if (buttonIndex==1) {
-            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-                // 耗时的操作
-                BSDataProvider *dp=[[BSDataProvider alloc] init];
-                NSArray *array=[dp logout];
-                [Singleton sharedSingleton].userInfo=nil;
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    if ([[array objectAtIndex:0] intValue]==0) {
-                        [Singleton sharedSingleton].userInfo=nil;
-                        [self.navigationController popViewControllerAnimated:YES];
-                    }
-                    else
-                    {
-                        UIAlertView *alwet=[[UIAlertView alloc] initWithTitle:@"提示" message:[array objectAtIndex:1] delegate:self cancelButtonTitle:@"确认" otherButtonTitles: nil];
-                        [alwet show];
-                    }
-                    
-                    //                    [alwet show];
-                    
-                });
-            });
+            [self logout];
         }
     }else if (alertView.tag==4) {
         if (buttonIndex==1) {
@@ -1029,7 +1117,7 @@
                     NSArray *ary=[result componentsSeparatedByString:@"@"];
                     
                     if ([[ary objectAtIndex:0] intValue]==0) {
-                        [dp updateChangTable:info :[dic objectAtIndex:0]];
+                        [dp updateChangTable:info :[[dic objectAtIndex:0] objectForKey:@"CheckNum"]];
                     }
                     title=[ary objectAtIndex:1];
                 }
@@ -1099,8 +1187,11 @@
             msg=[ary objectAtIndex:1];
         }
     }
-    UIAlertView *alert = [[UIAlertView alloc] initWithTitle:msg message:nil delegate:nil cancelButtonTitle:[[CVLocalizationSetting sharedInstance] localizedString:@"OK"] otherButtonTitles:nil];
-    [alert show];
+    bs_dispatch_sync_on_main_thread(^{
+        UIAlertView *alert = [[UIAlertView alloc] initWithTitle:msg message:nil delegate:nil cancelButtonTitle:[[CVLocalizationSetting sharedInstance] localizedString:@"OK"] otherButtonTitles:nil];
+        [alert show];
+    });
+    
     
 }
 #pragma mark View's Delegate
@@ -1159,11 +1250,13 @@
         [alert show];
         return;
     }
-    self.aryTables = mutTables;
     /**
      *  显示台位
      */
-    [self showTables:self.aryTables];
+    bs_dispatch_sync_on_main_thread(^{
+        [self showTables:mutTables];
+    });
+    
 }
 - (void)segmentClick:(UISegmentedControl*)sender
 {
@@ -1213,28 +1306,48 @@
  *  @param ary 所有台位信息
  */
 - (void)showTables:(NSArray *)ary{
+    if (_freeTableArray) {
+        _freeTableArray=nil;
+    }
+    if (_occupationTableArray) {
+        _occupationTableArray=nil;
+    }
+    _freeTableArray=[[NSMutableArray alloc] init];
+    _occupationTableArray=[[NSMutableArray alloc] init];
     int count = [ary count];
-    
     for (UIView *v in scvTables.subviews){
         if ([v isKindOfClass:[BSTableButton class]])
             [v removeFromSuperview];
     }
-    
     for (int i=0;i<count;i++){
         int row = i/5;
         int column = i%5;
         NSDictionary *dic = [ary objectAtIndex:i];
-        
         BSTableButton *btnTable = [BSTableButton buttonWithType:UIButtonTypeCustom];
         btnTable.delegate = self;
         btnTable.tag = i;
+        [btnTable setExclusiveTouch:YES];
         btnTable.frame = CGRectMake(145*column, 5+85*row, 135, 75);
         [btnTable addTarget:self action:@selector(tableClicked:) forControlEvents:UIControlEventTouchUpInside];
         btnTable.tableTitle =[NSString stringWithFormat:@"%@",[dic objectForKey:@"num"]];
         btnTable.manTitle.text=[dic objectForKey:@"man"];
         btnTable.tableType = [[dic objectForKey:@"status"] intValue];
-        
+        btnTable.tableDic=dic;
         [scvTables addSubview:btnTable];
+//        BSTableTypeOpen=2,         //yellow开台
+//        BSTableTypeOrdered=3,      //red点餐
+//        BSTableTypeCheck=4,        //purple结账
+//        BSTableTypeSeal=6,         //blue封台
+//        BSTableTypeChange=7,        //pink换台
+//        BSTableTypeChildren=8,      //子台位
+//        BSTableTypeStay=9,          //black挂单
+//        BSTableTypeNeat=10,
+        if (btnTable.tableType==BSTableTypeEmpty) {
+            [_freeTableArray addObject:dic];
+        }else if(btnTable.tableType==BSTableTypeOpen||btnTable.tableType==BSTableTypeOrdered||btnTable.tableType==BSTableTypeNeat)
+        {
+            [_occupationTableArray addObject:dic];
+        }
         [scvTables setContentSize:CGSizeMake(141*column, 83*row+100)];
     }
     [SVProgressHUD dismiss];
@@ -1249,9 +1362,9 @@
     [Singleton sharedSingleton].Seat=@"";
     [AKsNetAccessClass sharedNetAccess].TableNum=NULL;
     
-    dSelectedIndex = btn.tag;
     [Singleton sharedSingleton].dishArray=nil;
-    NSDictionary *info = [self.aryTables objectAtIndex:dSelectedIndex];
+    NSDictionary *info = btn.tableDic;
+    tableInfo=btn.tableDic;
     BSTableType type = [[info objectForKey:@"status"] intValue];
     UIAlertView *alert;
     segment.selectedSegmentIndex=[Singleton sharedSingleton].segment;
@@ -1259,13 +1372,14 @@
      *  当为空闲台位
      */
     if (type==BSTableTypeEmpty) {
-        [AKsNetAccessClass sharedNetAccess].TableNum=[[_aryTables objectAtIndex:dSelectedIndex] objectForKey:@"name"];
+        [AKsNetAccessClass sharedNetAccess].TableNum=[info objectForKey:@"name"];
         if (vOpen){
             [vOpen removeFromSuperview];
             vOpen = nil;
         }
-        vOpen = [[BSOpenTableView alloc] initWithFrame:CGRectMake(0, 0, 492, 354)];
+        vOpen = [[BSOpenTableView alloc] initWithFrame:CGRectMake(0, 0, 492, 354) withtag:@"1"];
         vOpen.delegate = self;
+        vOpen.tableDic=info;
         vOpen.center = CGPointMake(384, 512);
         vOpen.transform = CGAffineTransformMakeScale(0.1f, 0.1f);
         [vOpen addGestureRecognizer:_pan];
@@ -1275,16 +1389,16 @@
             vOpen.transform = CGAffineTransformIdentity;
         }];
     }
-    /**
-     *  开台
-     *
-     */
-    else if (type==BSTableTypeOpen)
-    {
-        UIAlertView *alert=[[UIAlertView alloc] initWithTitle:[[CVLocalizationSetting sharedInstance] localizedString:@"Please select operation"] message:nil delegate:self cancelButtonTitle:[[CVLocalizationSetting sharedInstance] localizedString:@"Cancel"] otherButtonTitles:[[CVLocalizationSetting sharedInstance] localizedString:@"Order"],[[CVLocalizationSetting sharedInstance] localizedString:@"Clear the table"], nil];
-        alert.tag=kdish;
-        [alert show];
-    }
+//    /**
+//     *  开台
+//     *
+//     */
+//    else if (type==BSTableTypeOpen)
+//    {
+//        UIAlertView *alert=[[UIAlertView alloc] initWithTitle:[[CVLocalizationSetting sharedInstance] localizedString:@"Please select operation"] message:nil delegate:self cancelButtonTitle:[[CVLocalizationSetting sharedInstance] localizedString:@"Cancel"] otherButtonTitles:[[CVLocalizationSetting sharedInstance] localizedString:@"Order"],[[CVLocalizationSetting sharedInstance] localizedString:@"Clear the table"], nil];
+//        alert.tag=kdish;
+//        [alert show];
+//    }
     /**
      *  结账
      *
@@ -1305,7 +1419,37 @@
     }else
     {
         [SVProgressHUD showProgress:-1 status:[[CVLocalizationSetting sharedInstance] localizedString:@"load..."] maskType:SVProgressHUDMaskTypeBlack];
-        [NSThread detachNewThreadSelector:@selector(getOrdersBytale:) toTarget:self withObject:@"2"];
+        [NSThread detachNewThreadSelector:@selector(getOrdersBytale:) toTarget:self withObject:btn];
+    }
+}
+#pragma mark - 搭台
+/**
+ *  台位长按事件
+ *
+ *  @param info 台位信息
+ */
+-(void)buildTable:(NSDictionary *)info
+{
+    tableInfo=info;
+    
+    BSTableType type = [[info objectForKey:@"status"] intValue];
+    if (type!=BSTableTypeEmpty&&type!=BSTableTypeCheck&&type!=BSTableTypeSeal) {
+        [AKsNetAccessClass sharedNetAccess].TableNum=[info objectForKey:@"name"];
+        if (vOpen){
+            [vOpen removeFromSuperview];
+            vOpen = nil;
+        }
+        vOpen = [[BSOpenTableView alloc] initWithFrame:CGRectMake(0, 0, 492, 354) withtag:@"6"];
+        vOpen.delegate = self;
+        vOpen.tableDic=info;
+        vOpen.center = CGPointMake(384, 512);
+        vOpen.transform = CGAffineTransformMakeScale(0.1f, 0.1f);
+        [vOpen addGestureRecognizer:_pan];
+        [self.view addSubview:vOpen];
+        scvTables.userInteractionEnabled=NO;
+        [UIView animateWithDuration:0.5f animations:^(void) {
+            vOpen.transform = CGAffineTransformIdentity;
+        }];
     }
 }
 /**
@@ -1313,25 +1457,48 @@
  *
  *  @param tag
  */
--(void)getOrdersBytale:(NSString *)tag
+-(void)getOrdersBytale:(BSTableButton *)btn
 {
     BSDataProvider *dp=[[BSDataProvider alloc] init];
-    NSDictionary *dict=[dp getOrdersBytabNum1:[[_aryTables objectAtIndex:dSelectedIndex] objectForKey:@"name"]];
+    NSDictionary *dict=[dp getOrdersBytabNum1:[tableInfo objectForKey:@"name"]];
     [SVProgressHUD dismiss];
-    if ([[dict objectForKey:@"tag"] intValue]==0) {
+    [Singleton sharedSingleton].tableName=[tableInfo objectForKey:@"num"];
+    if ([[dict objectForKey:@"Result"] intValue]==0) {
         NSArray *array=[dict objectForKey:@"message"];
-        [AKsNetAccessClass sharedNetAccess].TableNum=[[_aryTables objectAtIndex:dSelectedIndex] objectForKey:@"name"];
-        [Singleton sharedSingleton].Seat=[[_aryTables objectAtIndex:dSelectedIndex] objectForKey:@"name"];
-        [Singleton sharedSingleton].CheckNum=[array objectAtIndex:0];
-        [Singleton sharedSingleton].man=[array objectAtIndex:1];
-        [Singleton sharedSingleton].woman=[[[array objectAtIndex:2]componentsSeparatedByString:@"#"] firstObject];
-        if ([tag intValue]==1) {
-            [self AKOrder];
+        [Singleton sharedSingleton].Seat=[tableInfo objectForKey:@"name"];
+        if ([array count]==1) {
+            
+            [AKsNetAccessClass sharedNetAccess].TableNum=[tableInfo objectForKey:@"name"];
+            [Singleton sharedSingleton].Seat=[tableInfo objectForKey:@"name"];
+            [Singleton sharedSingleton].CheckNum=[[array lastObject] objectForKey:@"CheckNum"];
+            [Singleton sharedSingleton].tableName=[tableInfo objectForKey:@"num"];
+            [Singleton sharedSingleton].man=[[array lastObject] objectForKey:@"man"];
+            [Singleton sharedSingleton].woman=[[array lastObject] objectForKey:@"woman"];
+            if (btn.tableType==BSTableTypeOpen) {
+                UIAlertView *alert=[[UIAlertView alloc] initWithTitle:[[CVLocalizationSetting sharedInstance] localizedString:@"Please select operation"] message:nil delegate:self cancelButtonTitle:[[CVLocalizationSetting sharedInstance] localizedString:@"Cancel"] otherButtonTitles:[[CVLocalizationSetting sharedInstance] localizedString:@"Order"],[[CVLocalizationSetting sharedInstance] localizedString:@"Clear the table"], nil];
+                alert.tag=kdish;
+                [alert show];
+            }
+            else
+            {
+                [self quertView];
+            }
         }
         else
         {
-            [self quertView];
+            web=[[WebChildrenTable alloc] initWithFrame:CGRectMake(0, 0, 492, 354) withArray:array];
+            web.center = CGPointMake(384, 512);
+            web.transform = CGAffineTransformMakeScale(0.1f, 0.1f);
+            web.delegete=self;
+            [self.view addSubview:web];
+            scvTables.userInteractionEnabled=NO;
+            [UIView animateWithDuration:0.5f animations:^(void) {
+                web.transform = CGAffineTransformIdentity;
+            }];
+            return;
         }
+        
+        
     }
     else
     {
@@ -1373,10 +1540,8 @@
     scvTables.userInteractionEnabled=YES;
     if (info){
         
-        NSMutableDictionary *dic = [NSMutableDictionary dictionaryWithDictionary:info];
-        [dic setObject:[[_aryTables objectAtIndex:dSelectedIndex] objectForKey:@"name"] forKey:@"table"];
         [SVProgressHUD showProgress:-1 status:[[CVLocalizationSetting sharedInstance] localizedString:@"load..."] maskType:SVProgressHUDMaskTypeBlack];
-        [NSThread detachNewThreadSelector:@selector(openTable:) toTarget:self withObject:dic];
+        [NSThread detachNewThreadSelector:@selector(openTable:) toTarget:self withObject:info];
     }
     [self dismissViews];
 }
@@ -1404,11 +1569,11 @@
              *  开台成功
              */
             if ([[ary objectAtIndex:0] intValue]==0) {
-                [AKsNetAccessClass sharedNetAccess].TableNum=[[_aryTables objectAtIndex:dSelectedIndex] objectForKey:@"name"];
+                [AKsNetAccessClass sharedNetAccess].TableNum=[info objectForKey:@"name"];
                 [AKsNetAccessClass sharedNetAccess].PeopleManNum=[info objectForKey:@"man"];
                 [AKsNetAccessClass sharedNetAccess].PeopleWomanNum=[info objectForKey:@"woman"];
-                [Singleton sharedSingleton].Seat=[[_aryTables objectAtIndex:dSelectedIndex] objectForKey:@"name"];
-                
+                [Singleton sharedSingleton].Seat=[info objectForKey:@"name"];
+                [Singleton sharedSingleton].tableName=[info objectForKey:@"num"];
                 [Singleton sharedSingleton].CheckNum=STR;//账单号
                 [AKsNetAccessClass sharedNetAccess].zhangdanId=STR;
                 if([AKsNetAccessClass sharedNetAccess].isVipShow)
@@ -1434,7 +1599,41 @@
         
     }
 }
-
+#pragma mark - 搭台
+-(void)ChiledrenTableButton:(NSDictionary *)info
+{
+    scvTables.userInteractionEnabled=YES;
+    if (info) {
+        if ([[info objectForKey:@"state"] intValue]==1) {
+            UIAlertView *alert=[[UIAlertView alloc] initWithTitle:@"台位被别的手持机占用" message:nil delegate:nil cancelButtonTitle:@"确定" otherButtonTitles:nil];
+            [alert show];
+            [web removeFromSuperview];
+            web=nil;
+            return;
+        }
+        if ([[info objectForKey:@"ISFENGTAI"] intValue] ==1) {
+            UIAlertView *alert=[[UIAlertView alloc] initWithTitle:@"台位已封单不能进入" message:nil delegate:nil cancelButtonTitle:@"确定" otherButtonTitles:nil];
+            [alert show];
+            [web removeFromSuperview];
+            web=nil;
+            return;
+        }
+        [AKsNetAccessClass sharedNetAccess].TableNum=[info objectForKey:@"tableName"];
+//        [Singleton sharedSingleton].Seat=[info objectForKey:@"tableName"];
+        [Singleton sharedSingleton].tableName=[NSString stringWithFormat:@"%@(%@)",[Singleton sharedSingleton].tableName,[info objectForKey:@"tableName"]];
+        [Singleton sharedSingleton].CheckNum=[info objectForKey:@"CheckNum"];
+        [Singleton sharedSingleton].man=[info objectForKey:@"man"];
+        [Singleton sharedSingleton].woman=[info objectForKey:@"woman"];
+        [self quertView];
+        [web removeFromSuperview];
+        web=nil;
+    }else
+    {
+    [web removeFromSuperview];
+    web=nil;
+    }
+    
+}
 #pragma mark AlertViewDelegate
 //对话框代理事件
 - (void)alertView:(UIAlertView *)alertView didDismissWithButtonIndex:(NSInteger)buttonIndex{
@@ -1453,8 +1652,7 @@
             /**
              *  查询账单号
              */
-            [SVProgressHUD showProgress:-1 status:[[CVLocalizationSetting sharedInstance] localizedString:@"load..."] maskType:SVProgressHUDMaskTypeBlack];
-            [NSThread detachNewThreadSelector:@selector(getOrdersBytale:) toTarget:self withObject:@"1"];
+            [self AKOrder];
             
         }
     }
@@ -1480,8 +1678,8 @@
     [SVProgressHUD dismiss];
     BSDataProvider *dp=[[BSDataProvider alloc] init];
     NSMutableDictionary *dict=[[NSMutableDictionary alloc] init];
-    [Singleton sharedSingleton].Seat=[[_aryTables objectAtIndex:dSelectedIndex] objectForKey:@"name"];
-    [dict setObject:[[_aryTables objectAtIndex:dSelectedIndex] objectForKey:@"name"] forKey:@"tableNum"];
+    [Singleton sharedSingleton].Seat=[tableInfo objectForKey:@"name"];
+    [dict setObject:[tableInfo objectForKey:@"name"] forKey:@"tableNum"];
     [dict setObject:@"6" forKey:@"currentState"];
     [dict setObject:@"1" forKey:@"nextState"];
     /**
@@ -1500,6 +1698,7 @@
              *
              *  @return
              */
+            [dp delectCache];
             NSThread* myThread = [[NSThread alloc] initWithTarget:self
                                                          selector:@selector(getTableList:)
                                                            object:_tabledict];

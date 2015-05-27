@@ -14,7 +14,7 @@
 
 @implementation BSLogCell
 {
-    BSAddtionView *vAddition;
+    AKAdditionView *vAddition;
 }
 @synthesize delegate,dicInfo,lblAdditionPrice,tfPrice,lblUnit,indexPath,lblName,lblTotalPrice,lblAddition,tfCount,btnAdd,btnReduce,jia,jian,lb,lblLine,supTableView,btnEdit;
 - (id)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier
@@ -167,11 +167,12 @@
 - (void)setAddition{
     self.supTableView.userInteractionEnabled=NO;
     if (!vAddition){
-        vAddition = [[BSAddtionView alloc] initWithFrame:CGRectMake(0, 0, 492, 354) withPcode:[dicInfo objectForKey:@"ITCODE"]];
+//        vAddition = [[AKAdditionView alloc] initWithFrame:CGRectMake(0, 0, 492, 354) withPcode:[dicInfo objectForKey:@"ITCODE"]];
+        vAddition=[[AKAdditionView alloc] initWithFrame:CGRectMake(0, 0, 492, 354) withSelectAddtions:[dicInfo objectForKey:@"addition"]];
         vAddition.delegate = self;
         
         [self.window addSubview:vAddition];
-        vAddition.arySelectedAddtions=[[NSMutableArray alloc] initWithArray:[dicInfo objectForKey:@"addition"]];
+//        vAddition.arySelectedAddtions=[[NSMutableArray alloc] initWithArray:[dicInfo objectForKey:@"addition"]];
     }
 //    [vAddition presentPopoverFromRect:self.frame inView:self.superview permittedArrowDirections:UIPopoverArrowDirectionAny animated:YES];
 }
@@ -181,6 +182,7 @@
         [delegate cell:self additionChanged:[NSMutableArray arrayWithArray:ary]];
     }
     [vAddition removeFromSuperview];
+    vAddition=nil;
 }
 
 

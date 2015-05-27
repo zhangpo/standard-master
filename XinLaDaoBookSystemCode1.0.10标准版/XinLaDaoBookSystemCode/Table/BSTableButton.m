@@ -10,7 +10,7 @@
 
 
 @implementation BSTableButton
-@synthesize delegate=_delegate,manTitle=_manTitle;
+@synthesize delegate=_delegate,manTitle=_manTitle,tableDic=_tableDic;
 
 
 /*
@@ -28,13 +28,25 @@
         _manTitle=[[UILabel alloc] initWithFrame:CGRectMake(102,1.5, 30, 20)];
         //        _manTitle.backgroundColor=[UIColor blackColor];
         _manTitle.textAlignment=UITextAlignmentRight;
+        
         _manTitle.textColor=[UIColor whiteColor];
         _manTitle.backgroundColor=[UIColor clearColor];
         _manTitle.font=[UIFont systemFontOfSize:14];
         [self addSubview:_manTitle];
         self.titleLabel.font=[UIFont systemFontOfSize:30];
+        UILongPressGestureRecognizer *longPress =
+        [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(handleTableviewCellLongPressed:)];
+        //将长按手势添加到需要实现长按操作的视图里
+        [self addGestureRecognizer:longPress];
     }
     return self;
+}
+//长按事件
+- (void)handleTableviewCellLongPressed:(UILongPressGestureRecognizer *)gestureRecognizer
+{
+    if (gestureRecognizer.state==UIGestureRecognizerStateEnded) {
+        [_delegate buildTable:self.tableDic];
+    }
 }
 
 

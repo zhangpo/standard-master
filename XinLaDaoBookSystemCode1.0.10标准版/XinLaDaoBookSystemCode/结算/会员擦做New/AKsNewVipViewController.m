@@ -8,11 +8,9 @@
 
 #import "AKsNewVipViewController.h"
 #import "AKsNewVipPayViewController.h"
-#import "AKDataQueryClass.h"
 #import "AKsNewVipMessageShowCell.h"
 #import "AKsIsVipShowView.h"
 #import "SVProgressHUD.h"
-#import "AKURLString.h"
 #import "CVLocalizationSetting.h"
 
 @interface AKsNewVipViewController ()

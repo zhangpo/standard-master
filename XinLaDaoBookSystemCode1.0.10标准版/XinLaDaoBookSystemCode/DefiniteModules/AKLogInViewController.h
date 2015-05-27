@@ -8,7 +8,8 @@
 #import <UIKit/UIKit.h>
 #import "AKsNetAccessClass.h"
 #import "ZenKeyboardView.h"
-@interface AKLogInViewController : UIViewController<UITextFieldDelegate,AKsNetAccessClassDelegate,ZenKeyboardViewDelegate>
+#import "ZBarSDK.h"
+@interface AKLogInViewController : UIViewController<UITextFieldDelegate,AKsNetAccessClassDelegate,ZenKeyboardViewDelegate,ZBarReaderDelegate>
 
 @property (retain, nonatomic) IBOutlet UITextField *textField1;
 @property (retain, nonatomic) IBOutlet UITextField *textField2;

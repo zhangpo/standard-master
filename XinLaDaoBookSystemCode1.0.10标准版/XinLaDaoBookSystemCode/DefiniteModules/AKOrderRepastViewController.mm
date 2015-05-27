@@ -20,6 +20,7 @@
 #import "CVLocalizationSetting.h"
 
 
+
 @interface AKOrderRepastViewController ()
 
 @end
@@ -45,13 +46,14 @@
     NSMutableArray              *_selectCombo;                  //选择的套餐
     AKMySegmentAndView          *akmsav;                        //标题
     NSMutableArray              *classButton;                   //类别按钮
-    BSAddtionView               *vAddition;                     //附加项
+    AKAdditionView               *vAddition;                     //附加项
+    AKPrivateAdditionView       *privateAddition;               //固定附加项
     NSMutableDictionary         *_dataDic;                      //当前选中的菜品
     UIPanGestureRecognizer      *_pan;                          //拖动
     int                         _total;                         //选择的份数
     int                         _z;                             //TPNUM
     int                         cishu;                          //上面数量的点击次数
-    int                         _y;                             //第二单位的份数
+//    int                         _y;                             //第二单位的份数
     AKsIsVipShowView            *showVip;                       //会员信息
     BSDataProvider              *_dp;
     UIScrollView                *_RecommendView;
@@ -98,7 +100,9 @@
 -(void)viewWillAppear:(BOOL)animated
 {
     [super viewWillAppear:animated];
-    akmsav= [[AKMySegmentAndView alloc] init];
+    akmsav= [AKMySegmentAndView shared];
+    [akmsav segmentShow:YES];
+    [akmsav shoildCheckShow:NO];
     akmsav.frame=CGRectMake(0, 0, 768, 114);
     akmsav.delegate=self;
     [self.view addSubview:akmsav];
@@ -117,7 +121,7 @@
 - (void)viewDidLoad
 {
     [super viewDidLoad];
-    _y=0;
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(logout) name:@"LOGOUT" object:nil];
     _pan=[[UIPanGestureRecognizer alloc]initWithTarget:self action:@selector(tuodongView:)];
     _pan.delaysTouchesBegan=YES;
     _allComboArray=[[[BSDataProvider alloc] init] allCombo];
@@ -253,6 +257,9 @@
     //    _count=sender.selectedSegmentIndex;
     [self button:sender.tag];
 }
+/**
+ *  刷新台位信息
+ */
 -(void)upload
 {
     _selectArray=[NSMutableArray array];
@@ -292,6 +299,9 @@
     [ary removeAllObjects];
     [_RecommendView sendSubviewToBack:self.view];
 }
+/**
+ *  改变按钮的颜色
+ */
 -(void)changeButtonColor
 {
     for (int i=0; i<[classArray count]; i++) {
@@ -320,7 +330,7 @@
                 NSString *str=[dict objectForKey:@"DES"];
                 if ([btn.titleLabel.text isEqualToString:str]) {
                     if (btn.selected==NO) {
-                                               btn.lblCount.text=@"";
+                        btn.lblCount.text=@"";
                         btn.selected=YES;
                     }
                     for (NSDictionary *dict1 in _selectArray) {
@@ -346,6 +356,9 @@
     [[NSNotificationCenter defaultCenter] postNotificationName:@"postData" object:_selectArray];
     [self updataTitle];
 }
+/**
+ *  搜索
+ */
 - (void)searchBarInit {
     _searchBar= [[UISearchBar alloc] initWithFrame:CGRectMake(0, 120, 768, 50)];
     _searchBar.autocorrectionType = UITextAutocorrectionTypeNo;
@@ -358,6 +371,7 @@
 	_searchBar.barStyle=UIBarStyleDefault;
     [self.view addSubview:_searchBar];
 }
+#pragma mark - 附加项
 - (void)additionSelected:(NSArray *)ary{
     if (ary) {
         [_dataDic setValue:ary forKey:@"addition"];
@@ -365,6 +379,9 @@
     [vAddition removeFromSuperview];
     vAddition=nil;
 }
+/**
+ *  更新类别数量
+ */
 -(void)updataTitle
 {
     for (int i=0; i<[classArray count]; i++) {
@@ -391,7 +408,11 @@
     }
     
 }
-
+/**
+ *  菜品按钮事件
+ *
+ *  @param tag
+ */
 -(void)button:(int)tag
 {
     if ([_buttonArray count]==0) {
@@ -450,6 +471,7 @@
     }
     [aScrollView setContentSize:CGSizeMake(688, [_array count]/5*90+114)];
 }
+#pragma mark - 搜索事件
 - (void)searchBar:(UISearchBar *)_searchBar textDidChange:(NSString *)searchText
 {
     for (UIButton *btn in [aScrollView subviews]) {
@@ -509,9 +531,10 @@
     }
     [aScrollView setContentSize:CGSizeMake(688, [_array count]/5*90+114)];
 }
+#pragma mark - 菜品按钮的事件
 -(void)buttonClick:(AKComboButton *)btn
 {
-
+    
     /**
      *  判断是否是删除
      */
@@ -583,17 +606,16 @@
             /**
              *  判断套餐或单品
              */
+            _button=btn;
             if (btn.tag>=10000) {
                 /**
                  *  当为套餐时
                  */
                 aScrollView.frame=CGRectMake(80,175, 688, 360);
                 [self.view bringSubviewToFront:_view];
-                btn.lblCount.text=[NSString stringWithFormat:@"%d",[btn.lblCount.text intValue]+_total];
                 _total=1;
+                btn.lblCount.text=[NSString stringWithFormat:@"%d",[btn.lblCount.text intValue]+_total];
                 [self comboClick1:btn];
-                _button=btn;
-                
             }
             else
             {
@@ -606,52 +628,226 @@
                  */
                 NSMutableDictionary *dict=[NSMutableDictionary dictionaryWithDictionary:btn.dataInfo];
                 _dataDic=dict;
-                if ([[dict objectForKey:@"UNITCUR"] intValue]==2) {
-                    [self WeightFlg];
-                }
-                else
-                {
-                    
-                    [_dataDic setValue:@"0" forKey:@"Weight"];
-                    [_dataDic setValue:@"1" forKey:@"UNITCUR"];
-                    [dict setValue:[NSString stringWithFormat:@"%d",_total] forKey:@"total"];
-                    for (NSDictionary *dict1 in _selectArray) {
-                        if ([[dict1 objectForKey:@"ISTC"] intValue]==0&&[[dict1 objectForKey:@"ITEM"] isEqualToString:[_dataDic objectForKey:@"ITEM"]]&&[dict1 objectForKey:@"addition"]==nil) {
-                            [dict setValue:[NSString stringWithFormat:@"%d",_total+[[dict1 objectForKey:@"total"] intValue]] forKey:@"total"];
-                            [_selectArray removeObject:dict1];
-                            break;
-                        }
-                    }
-                    [dict setValue:@"0" forKey:@"TPNUM"];
-                    [_selectArray addObject:dict];
-                    _total=1;
-                    [akmsav setsegmentIndex:[NSString stringWithFormat:@"%d",_total-1]];
-                    [akmsav setTitle:[NSString stringWithFormat:@"%d",_total]];
-                    cishu=0;
-                    [self updataTitle];
-                }
-                //            注释该行代码，菜品默认选择segment份数
-                [self PackageGroup];
-                [[NSNotificationCenter defaultCenter] postNotificationName:@"postData" object:_selectArray];
+                
+                
+                [self ISTEMP];
                 
             }
         }
     }
 }
--(void)WeightFlg
+#pragma mark - 临时菜
+/**
+ *  @author ZhangPo, 15-04-13 15:04:49
+ *
+ *  @brief  判断是否临时菜
+ *
+ *  @since
+ */
+-(void)ISTEMP
 {
-    if (_total>_y) {
-        UIAlertView *alertView = [[UIAlertView alloc]initWithTitle:@"重量" message:@"请输入重量" delegate:self cancelButtonTitle:[[CVLocalizationSetting sharedInstance] localizedString:@"Cancel"] otherButtonTitles:@"确定",nil];
+    if ([[_dataDic objectForKey:@"ISTEMP"] intValue]==1) {
+        UIAlertView *alert=[[UIAlertView alloc] initWithTitle:@"临时菜" message:nil delegate:self cancelButtonTitle:@"取消" otherButtonTitles:@"确定", nil];
+        alert.alertViewStyle=UIAlertViewStyleLoginAndPasswordInput;
+        alert.tag=5;
+        UITextField *textField=[alert textFieldAtIndex:0];
+        textField.delegate=self;
+        textField.tag=1000;
+        textField.placeholder=@"请输入菜品名称";
+        UITextField *textField1=[alert textFieldAtIndex:1];
+        textField1.placeholder=@"请输入菜品价格";
+        textField1.secureTextEntry=NO;
+        textField1.delegate=self;
+        [alert show];
+    }else
+    {
+        [self ChangeUnit];
+    }
+}
+#pragma mark - 多单位
+/**
+ *  @author ZhangPo, 15-04-13 15:04:01
+ *
+ *  @brief  判断单位
+ *
+ *  @since
+ */
+-(void)ChangeUnit
+{
+    if ([[_dataDic objectForKey:@"ISUNITS"] intValue]==1) {
+        NSDictionary *food=_dataDic;
+        NSMutableArray *mutmut = [NSMutableArray array];
+        for (int i=0;i<6;i++){
+            NSString *unit = [food objectForKey:[NSString stringWithFormat:@"UNITS%d",i+1]];
+            NSString *price = [food objectForKey:0==i?@"PRICE":[NSString stringWithFormat:@"PRICE%d",i+4]];
+            if (unit && [unit length]>0)
+                [mutmut addObject:[NSDictionary dictionaryWithObjectsAndKeys:price,@"price",unit,@"unit", nil]];
+        }
+        
+        if ([mutmut count]>1){
+            NSMutableArray *mut = [NSMutableArray array];
+            for (int j=0;j<[mutmut count];j++){
+                NSString *title = [NSString stringWithFormat:@"%d元/%@",[[[mutmut objectAtIndex:j] objectForKey:@"price"] intValue],[[mutmut objectAtIndex:j] objectForKey:@"unit"]];
+                [mut addObject:title];
+            }
+            UIActionSheet *sheet = [[UIActionSheet alloc] initWithTitle:@"请选择单位"   delegate:self
+                                                      cancelButtonTitle:nil
+                                                 destructiveButtonTitle:nil
+                                                      otherButtonTitles:nil];
+            // 逐个添加按钮（比如可以是数组循环）
+            for (NSString *str in mut) {
+                [sheet addButtonWithTitle:str];
+            }
+            sheet.delegate=self;
+            [sheet showFromRect:_button.frame inView:aScrollView animated:YES];
+        }
+
+    }else{
+        [self ChangePrice];
+    }
+}
+-(void)actionSheet:(UIActionSheet *)actionSheet clickedButtonAtIndex:(NSInteger)buttonIndex
+{
+    if (buttonIndex>=0) {
+        int j = 0;
+        for (int i=0;i<6;i++){
+            NSString *unit = [_dataDic objectForKey:[NSString stringWithFormat:@"UNITS%d",i+1]];
+            if (unit && [unit length]>0){
+                if (j==buttonIndex) {
+                    [_dataDic setValue:unit forKey:@"UNIT"];
+                    [_dataDic setValue:[NSString stringWithFormat:@"UNIT%d",i+1] forKey:@"UNITKAY"];
+                    [_dataDic setValue:[_dataDic objectForKey:j==0?@"PRICE":[NSString stringWithFormat:@"PRICE%d",i+4]] forKey:@"PRICE"];
+                    break;
+                }
+                j++;
+            }
+            
+        }
+        [self ChangePrice];
+    }
+}
+#pragma mark - 判断是否改变价格
+-(void)ChangePrice
+{
+    /**
+     * 判断是否修改价格
+     */
+    if ([[_dataDic objectForKey:@"STATE"] intValue]==1) {
+        UIAlertView *alertView = [[UIAlertView alloc]initWithTitle:@"修改价格" message:@"请输入修改价格" delegate:self cancelButtonTitle:[[CVLocalizationSetting sharedInstance] localizedString:@"Cancel"] otherButtonTitles:@"确定",nil];
         alertView.alertViewStyle = UIAlertViewStylePlainTextInput;
         UITextField *tf1 = [alertView textFieldAtIndex:0];
         tf1.delegate=self;
-        alertView.tag=3;
+        alertView.tag=4;
         [alertView show];
-    }
-    else
+    }else
     {
-        _y=0;
+        [self WeightFlg];
     }
+}
+#pragma  mark - 判断是否第二单位
+-(void)WeightFlg
+{
+    if ([[_dataDic objectForKey:@"UNITCUR"] intValue]==2)
+    {
+        _total=1;
+            UIAlertView *alertView = [[UIAlertView alloc]initWithTitle:@"重量" message:@"请输入重量" delegate:self cancelButtonTitle:[[CVLocalizationSetting sharedInstance] localizedString:@"Cancel"] otherButtonTitles:@"确定",nil];
+            alertView.alertViewStyle = UIAlertViewStylePlainTextInput;
+            UITextField *tf1 = [alertView textFieldAtIndex:0];
+            tf1.delegate=self;
+            alertView.tag=3;
+            [alertView show];
+    }else
+    {
+        [_dataDic setValue:@"0" forKey:@"Weight"];
+        [_dataDic setValue:@"1" forKey:@"UNITCUR"];
+        [_dataDic setValue:@"0" forKey:@"TPNUM"];
+        [self privateAdditionView];
+    }
+}
+#pragma mark - 判断是否必选附加项
+-(void)privateAdditionView
+{
+    /**
+     *  @author ZhangPo, 15-04-13 14:04:49
+     *
+     *  @brief  附加产品标识错误   ISTEMP临时菜  ISADDPROD附加产品
+     *
+     *  @since
+     */
+    if ([[_dataDic objectForKey:@"FUJIAMODE"] intValue]==1||[[_dataDic objectForKey:@"ISADDPRO"] intValue]==1) {
+        aScrollView.userInteractionEnabled=NO;
+        if (!privateAddition){
+            if ([_dataDic objectForKey:@"CNT"]) {
+                privateAddition = [[AKPrivateAdditionView alloc] initWithFrame:CGRectMake(0, 0, 580, 400) withPcode:[_dataDic objectForKey:@"PCODE1"]];
+            }
+            else
+            {
+                privateAddition = [[AKPrivateAdditionView alloc] initWithFrame:CGRectMake(0, 0, 580, 400) withPcode:[_dataDic objectForKey:@"ITCODE"]];
+            }
+            privateAddition.delegate = self;
+        }
+        if (!privateAddition.superview){
+            privateAddition.center = CGPointMake(self.view.center.x,924+self.view.center.y);
+            [self.view addSubview:privateAddition];
+            [privateAddition firstAnimation];
+        }
+        else{
+            aScrollView.userInteractionEnabled=YES;
+            [privateAddition removeFromSuperview];
+            privateAddition = nil;
+        }
+
+    }else
+    {
+        [self addFoodForArray];
+    }
+}
+
+#pragma mark - privateAdditionDelegate
+-(void)privateAdditionSelected:(NSArray *)ary
+{
+    aScrollView.userInteractionEnabled=YES;
+    if (ary) {
+        [_dataDic setObject:ary forKey:@"addition"];
+        if ([_dataDic objectForKey:@"CNT"]) {
+            [_selectCombo addObject:_dataDic];
+        }else
+        {
+            [self addFoodForArray];
+        }
+        [self updataTitle];
+        [privateAddition removeFromSuperview];
+        privateAddition = nil;
+    }else
+    {
+        if ([_button.lblCount.text intValue]>_total) {
+            _button.lblCount.text=[NSString stringWithFormat:@"%d",[_button.lblCount.text intValue]-_total];
+        }else
+        {
+            [_button setBackgroundImage:[[CVLocalizationSetting sharedInstance] imgWithContentsOfFile:@"product.png"] forState:UIControlStateNormal];
+            _button.lblCount.text=@"";
+            _button.selected=YES;
+        }
+        [self updataTitle];
+        [privateAddition removeFromSuperview];
+        privateAddition = nil;
+    }
+}
+#pragma mark - 添加菜品
+-(void)addFoodForArray
+{
+    [_dataDic setValue:[NSString stringWithFormat:@"%d",_total] forKey:@"total"];
+    for (NSDictionary *dict1 in _selectArray) {
+        if ([[dict1 objectForKey:@"ISTC"] intValue]==0&&[[dict1 objectForKey:@"ITEM"] isEqualToString:[_dataDic objectForKey:@"ITEM"]]&&[dict1 objectForKey:@"addition"]==nil&&[[dict1 objectForKey:@"UNITKAY"] isEqualToString:[_dataDic objectForKey:@"UNITKAY"]]) {
+            [_dataDic setValue:[NSString stringWithFormat:@"%d",_total+[[dict1 objectForKey:@"total"] intValue]] forKey:@"total"];
+            [_selectArray removeObject:dict1];
+            break;
+        }
+    }
+    [_selectArray addObject:_dataDic];
+    [self updataTitle];
+    [self PackageGroup];
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"postData" object:_selectArray];
 }
 //点套餐
 -(void)comboClick1:(AKComboButton *)btn
@@ -660,7 +856,7 @@
     /**
      *  根据主键查询套餐明细
      */
-    NSArray *arry=[dp combo:[btn.dataInfo objectForKey:@"ITCODE"]];
+    NSArray *arry=[dp combo:btn.dataInfo];
     [_ComButton removeAllObjects];
     /**
      *  获取当前套餐信息
@@ -855,9 +1051,12 @@
      */
     if (_total==0) {
         if (btn.selected==NO) {
+        A:
             for (NSDictionary *dict in _selectCombo) {
                 if ([[dict objectForKey:@"PCODE"] isEqualToString:[btn.dataInfo objectForKey:@"PCODE"]]) {
                     [_selectCombo removeObject:dict];
+                    goto A;
+                    break;
                 }
             }
         }
@@ -919,7 +1118,12 @@
             [dict setObject:@"1" forKey:@"total"];
         }
         [dict setValue:[NSString stringWithFormat:@"%d",_z] forKey:@"TPNUM"];
-        [_selectCombo addObject:dict];
+        if ([[dict objectForKey:@"FUJIAMODE"] intValue]==1||[[dict objectForKey:@"ISTEMP"] intValue]==1) {
+            [self privateAdditionView];
+        }else
+        {
+            [_selectCombo addObject:dict];
+        }
         [[_selectArray lastObject] setObject:_selectCombo forKey:@"combo"];
         if ([[_dataDic objectForKey:@"UNITCNT"] intValue]==2) {
             [_dataDic setValue:@"2" forKey:@"UNITCUR"];
@@ -976,6 +1180,9 @@
     
     int x=0;
     int z=1;
+    /**
+     *  判断套餐是否选择完毕
+     */
     for (NSArray *array in _ComButton) {
         BOOL tag=YES;
         for (AKComboButton *button in array) {
@@ -984,7 +1191,6 @@
                 tag=NO;
             }
         }
-        
         if (tag&&[[((AKComboButton *)[array lastObject]).dataInfo objectForKey:@"TYPMINCNT"] intValue]!=0) {
             UIAlertView *alert=[[UIAlertView alloc] initWithTitle:[NSString stringWithFormat:[[CVLocalizationSetting sharedInstance] localizedString:@"Also have no choice"],z] message:nil delegate:nil cancelButtonTitle:[[CVLocalizationSetting sharedInstance] localizedString:@"OK"] otherButtonTitles:nil];
             [alert show];
@@ -993,7 +1199,9 @@
         z++;
     }
     float mrMoney = 0.0;
+    //套餐价格
     float tcMoney=[[[_selectArray lastObject] objectForKey:@"PRICE"] floatValue];
+    //套餐加价
     for (NSDictionary *dict in _selectCombo) {
         if ([[dict objectForKey:@"NADJUSTPRICE"] floatValue]>0) {
             tcMoney+=[[dict objectForKey:@"NADJUSTPRICE"] floatValue]*[[dict objectForKey:@"total"] floatValue];
@@ -1004,14 +1212,28 @@
     for (int i=0; i<[_selectCombo count]; i++) {
         
         NSDictionary *dict=[_selectCombo objectAtIndex:i];
-        if ([[dict objectForKey:@"UNITCUR"] intValue]==2) {
-            mrMoney+=[[dict objectForKey:@"UNITCUR"] floatValue]*[[dict objectForKey:@"PRICE1"] floatValue];
+        if ([[dict objectForKey:@"TCMONEYMODE"] intValue]!=2) {
+            if ([[dict objectForKey:@"UNITCUR"] intValue]==2) {
+                mrMoney+=[[dict objectForKey:@"UNITCUR"] floatValue]*[[dict objectForKey:@"PRICE1"] floatValue];
+            }
+            if ([dict objectForKey:@"total"]==nil) {
+                [dict setValue:@"1" forKey:@"total"];
+            }
+            [dict setValue:[NSString stringWithFormat:@"%.2f",[[dict objectForKey:@"PRICE1"] floatValue]*[[dict objectForKey:@"total"] floatValue]] forKey:@"PRICE"];
+            mrMoney+=[[dict objectForKey:@"PRICE"] floatValue];
+        }else
+        {
+            [dict setValue:[dict objectForKey:@"FPRICE"] forKey:@"PRICE1"];
+            if ([[dict objectForKey:@"UNITCUR"] intValue]==2) {
+                mrMoney+=[[dict objectForKey:@"UNITCUR"] floatValue]*[[dict objectForKey:@"PRICE1"] floatValue];
+            }
+            if ([dict objectForKey:@"total"]==nil) {
+                [dict setValue:@"1" forKey:@"total"];
+            }
+            [dict setValue:[NSString stringWithFormat:@"%.2f",[[dict objectForKey:@"PRICE1"]!=nil?[dict objectForKey:@"PRICE1"]:[dict objectForKey:@"PRICE"] floatValue]*[[dict objectForKey:@"total"] floatValue]] forKey:@"PRICE"];
+            mrMoney+=[[dict objectForKey:@"PRICE"] floatValue];
         }
-        if ([dict objectForKey:@"total"]==nil) {
-            [dict setValue:@"1" forKey:@"total"];
-        }
-        [dict setValue:[NSString stringWithFormat:@"%.2f",[[dict objectForKey:@"PRICE1"] floatValue]*[[dict objectForKey:@"total"] floatValue]] forKey:@"PRICE"];
-        mrMoney+=[[dict objectForKey:@"PRICE"] floatValue];
+        
     }
     
     for (int i=0; i<[_selectCombo count]; i++) {
@@ -1045,8 +1267,7 @@
         }
         if (i==[_selectCombo count]-1) {
             float mrMoney1 = 0.0;
-            //                    float tcMoney=[[[_selectArray objectAtIndex:[_selectArray count]-[arry count]+[_Combo count]-x-1] objectForKey:@"PRICE"] floatValue];
-            
+            tcMoney=[[[_selectArray lastObject] objectForKey:@"PRICE"] floatValue];
             for (int i=0; i<[_selectCombo count]; i++) {
                 
                 NSDictionary *dict=[_selectCombo objectAtIndex:i];
@@ -1123,9 +1344,12 @@
 }
 
 
-
+#pragma mark - 已点菜品按钮事件
 - (IBAction)alreadyBuyGreens:(id)sender//已点菜品
 {
+    /**
+     * 判断套餐是否选择完毕
+     */
     if ([_ComButton count]>0) {
         UIAlertView *alert=[[UIAlertView alloc] initWithTitle:@"提示" message:@"你的套餐还没有选择完毕" delegate:self cancelButtonTitle:[[CVLocalizationSetting sharedInstance] localizedString:@"OK"] otherButtonTitles: nil];
         [alert show];
@@ -1134,28 +1358,27 @@
     NSArray *foods =[[NSArray alloc] initWithArray:_selectArray];
     NSMutableArray *array1=[[NSMutableArray alloc] init];
     for (int i=0; i<[foods count]; i++) {
-        //        for (int j=0; j<[[[foods objectAtIndex:i] objectForKey:@"total"] intValue]; j++) {
         NSMutableDictionary *dict1=[[NSMutableDictionary alloc] initWithDictionary:[_selectArray objectAtIndex:i]];
-        [dict1 setObject:@"UNIT" forKey:@"unitKey"];
         [array1 addObject:dict1];
     }
     [Singleton sharedSingleton].dishArray=array1;
     BSLogViewController *vbsvc=[[BSLogViewController alloc] init];
     [self.navigationController pushViewController:vbsvc animated:YES];
 }
+#pragma mark - 备注按钮事件
 - (IBAction)Beizhu:(UIButton *)sender {
     if ([_dataDic count]>0) {
         if (!vAddition){
-            vAddition = [[BSAddtionView alloc] initWithFrame:CGRectMake(0, 0, 492, 354) withPcode:[_dataDic objectForKey:@"ITCODE"]];
+            vAddition = [[AKAdditionView alloc] initWithFrame:CGRectMake(0, 0, 492, 354) withSelectAddtions:[_dataDic objectForKey:@"addition"]];
             vAddition.delegate = self;
             
             //        vAddition.arySelectedAddtions=;
         }
         if (!vAddition.superview){
             vAddition.center = CGPointMake(self.view.center.x,924+self.view.center.y);
-            [vAddition.arySelectedAddtions removeAllObjects];
-            vAddition.arySelectedAddtions=[NSMutableArray arrayWithArray:[_dataDic objectForKey:@"addition"]];
-            [vAddition.tv reloadData];
+//            [vAddition.arySelectedAddtions removeAllObjects];
+//            vAddition.arySelectedAddtions=[NSMutableArray arrayWithArray:[_dataDic objectForKey:@"addition"]];
+//            [vAddition.tv reloadData];
             [self.view addSubview:vAddition];
             [vAddition firstAnimation];
         }
@@ -1171,7 +1394,7 @@
     }
     
 }
-
+#pragma mark - 返回按钮事件
 - (IBAction)goBack:(id)sender//返回
 {
     
@@ -1195,6 +1418,7 @@
         [self.navigationController popToViewController:[self.navigationController.viewControllers objectAtIndex:1]  animated:YES];
     }
 }
+#pragma mark - UIAlertViewDelegate
 - (void)alertView:(UIAlertView *)alertView didDismissWithButtonIndex:(NSInteger)buttonIndex
 {
     if (alertView.tag==1) {
@@ -1240,27 +1464,35 @@
         [akmsav setsegmentIndex:@"11"];
         [akmsav setTitle:@"1"];
         _total=1;
-    }
-    
-    if (alertView.tag==3) {
+    }else if (alertView.tag==3) {//第二单位
         UITextField *tf1 = [alertView textFieldAtIndex:0];
         
         if (1==buttonIndex) {
             [_dataDic setValue:@"1" forKey:@"total"];
             [_dataDic setValue:@"2" forKey:@"UNITCUR"];
             [_dataDic setValue:tf1.text forKey:@"Weight"];
-            [_selectArray addObject:_dataDic];
-            _y++;
-            [self WeightFlg];
-            //            [[NSNotificationCenter defaultCenter] postNotificationName:@"postData" object:_selectArray];
+//            [_selectArray addObject:_dataDic];
+            //继续判断别的
+            [self privateAdditionView];
         }
-        else
-        {
-            _y++;
+    }else if (alertView.tag==4)//修改价格
+    {
+        UITextField *tf1 = [alertView textFieldAtIndex:0];
+        if (buttonIndex==1) {
+            [_dataDic setObject:tf1.text forKey:@"PRICE"];
             [self WeightFlg];
         }
+    }else if (alertView.tag==5){
+        if (buttonIndex==1) {
+            UITextField *textField=[alertView textFieldAtIndex:0];
+            UITextField *textField1=[alertView textFieldAtIndex:1];
+            [_dataDic setObject:textField.text forKey:@"DES"];
+            [_dataDic setObject:textField1.text forKey:@"PRICE"];
+        }
+        [self ChangeUnit];
     }
 }
+#pragma mark - 套餐推荐
 -(void)PackageGroup
 {
     NSMutableArray *comboArray=[NSMutableArray array];
@@ -1269,7 +1501,7 @@
             [comboArray addObjectsFromArray:ary];//取出所有的菜
         }
     }
-//    int x=0;
+    //    int x=0;
     /**
      *  遍历所有的明细菜品
      */
@@ -1279,7 +1511,6 @@
                 if ([[dictSelect objectForKey:@"ITCODE"] isEqualToString:[dictAll objectForKey:@"PCODE1"]]) {
                     [dictAll setValue:@"0" forKey:@"count"];
                     [dictAll setValue:[dictSelect objectForKey:@"total"] forKey:@"count"];
-//                    x++;
                 }
             }
         }
@@ -1417,12 +1648,13 @@
                     [button setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
                     [_RecommendView addSubview:button];
                     i++;
+                    if ([dict isEqual:[array lastObject]]) {
+                        h=button.frame.origin.y+40;
+                    }
                 }
                 j++;
-                h+=120;
+                
                 [_RecommendView setContentSize:CGSizeMake(650,h+50)];
-                
-                
             }
             
             [_RecommendView sendSubviewToBack:self.view];
@@ -1455,13 +1687,13 @@
             for (NSDictionary *dict1 in [dict objectForKey:@"food"]) {
                 [array addObject:[NSMutableDictionary dictionaryWithDictionary:dict1]];
             }
-//            [array addObjectsFromArray:[NSMutableArray arrayWithArray:]];
+            //            [array addObjectsFromArray:[NSMutableArray arrayWithArray:]];
         }
         /**
          *  获取选择的菜品
          */
         [[[[onlyOne objectAtIndex:btn.tag/10000-1] objectForKey:@"combo"] objectAtIndex:btn.tag%10000] setObject:@"1" forKey:@"total"];
-//        [array addObject:[NSMutableDictionary dictionaryWithDictionary:[[[onlyOne objectAtIndex:btn.tag/10000-1] objectForKey:@"combo"] objectAtIndex:btn.tag%10000]]];
+        //        [array addObject:[NSMutableDictionary dictionaryWithDictionary:[[[onlyOne objectAtIndex:btn.tag/10000-1] objectForKey:@"combo"] objectAtIndex:btn.tag%10000]]];
         [array addObject:[NSMutableDictionary dictionaryWithDictionary:[[[onlyOne objectAtIndex:btn.tag/10000-1] objectForKey:@"combo"] objectAtIndex:btn.tag%10000]]];
     }else
     {
@@ -1524,7 +1756,7 @@
     [dict setObject:[[array lastObject] objectForKey:@"PRICE"] forKey:@"PRICE"];
     [dict setObject:@"1" forKey:@"total"];
     [dict setObject:@"1" forKey:@"ISTC"];
-//    NSArray *ary1=[[NSArray alloc] initWithArray:array];
+    //    NSArray *ary1=[[NSArray alloc] initWithArray:array];
     [dict setObject:array forKey:@"combo"];
     _selectCombo=array;
     onlyOne=nil;
@@ -1555,16 +1787,18 @@
 
 
 - (BOOL)textField:(UITextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string{
-    
+    if (textField.tag==1000)
+    {
     //  判断输入的是否为数字 (只能输入数字)输入其他字符是不被允许的
-    
     if([string isEqualToString:@""])
     {
         return YES;
     }
     else
     {
-        NSString *validRegEx =@"^[0-9]+(.[0-9]{2})?$";
+        NSString *validRegEx=nil;
+        
+            validRegEx =@"^[a-zA-Z0-9\u4E00-\u9FA5]";
         
         NSPredicate *regExPredicate =[NSPredicate predicateWithFormat:@"SELF MATCHES %@", validRegEx];
         
@@ -1578,7 +1812,118 @@
             
             return NO;
     }
+    }else
+   {
+        
+        NSScanner      *scanner    = [NSScanner scannerWithString:string];
+        
+        NSCharacterSet *numbers;
+        
+        NSRange         pointRange = [textField.text rangeOfString:@"."];
+        
+        
+        
+        if ( (pointRange.length > 0) && (pointRange.location < range.location  || pointRange.location > range.location + range.length) )
+            
+        {
+            
+            numbers = [NSCharacterSet characterSetWithCharactersInString:@"0123456789"];
+            
+        }
+        
+        else
+            
+        {
+            
+            numbers = [NSCharacterSet characterSetWithCharactersInString:@"0123456789."];
+            
+        }
+        
+        
+        
+        if ( [textField.text isEqualToString:@""] && [string isEqualToString:@"."] )
+            
+        {
+            
+            return NO;
+            
+        }
+        
+        
+        
+        short remain = 2; //默认保留2位小数
+        
+        
+        
+        NSString *tempStr = [textField.text stringByAppendingString:string];
+        
+        NSUInteger strlen = [tempStr length];
+        
+        if(pointRange.length > 0 && pointRange.location > 0){ //判断输入框内是否含有“.”。
+            
+            if([string isEqualToString:@"."]){ //当输入框内已经含有“.”时，如果再输入“.”则被视为无效。
+                
+                return NO;
+                
+            }
+            
+            if(strlen > 0 && (strlen - pointRange.location) > remain+1){ //当输入框内已经含有“.”，当字符串长度减去小数点前面的字符串长度大于需要要保留的小数点位数，则视当次输入无效。
+                
+                return NO;
+                
+            }
+            
+        }
+        
+        
+        
+        NSRange zeroRange = [textField.text rangeOfString:@"0"];
+        
+        if(zeroRange.length == 1 && zeroRange.location == 0){ //判断输入框第一个字符是否为“0”
+            
+            if(![string isEqualToString:@"0"] && ![string isEqualToString:@"."] && [textField.text length] == 1){ //当输入框只有一个字符并且字符为“0”时，再输入不为“0”或者“.”的字符时，则将此输入替换输入框的这唯一字符。
+                
+                textField.text = string;
+                
+                return NO;
+                
+            }else{
+                
+                if(pointRange.length == 0 && pointRange.location > 0){ //当输入框第一个字符为“0”时，并且没有“.”字符时，如果当此输入的字符为“0”，则视当此输入无效。
+                    
+                    if([string isEqualToString:@"0"]){
+                        
+                        return NO;
+                        
+                    }
+                    
+                }
+                
+            }
+            
+        }
+        NSString *buffer;
+        if ( ![scanner scanCharactersFromSet:numbers intoString:&buffer] && ([string length] != 0) )
+            
+        {
+            return NO;
+        }
+        
+        
+    }
     
+    
+    
+    return YES;
+}
+#pragma mark - 注销登录
+-(void)logout
+{
+    [Singleton sharedSingleton].userInfo=nil;
+    NSArray *array=[self.navigationController viewControllers];
+    if ([array count]>1) {
+        [self.navigationController popToRootViewControllerAnimated:YES];
+    }
 }
 
 - (void)viewDidUnload {

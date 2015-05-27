@@ -9,10 +9,12 @@
 #import "AppDelegate.h"
 #import "AKLogInViewController.h"
 #import "CVLocalizationSetting.h"
+#import "BSDataProvider.h"
 
 @implementation AppDelegate
 {
-    NSString *_strLanguage;
+    NSString    *_strLanguage;
+    NSInteger   OLDTIME;
 }
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
@@ -87,11 +89,48 @@
 {
     // Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later. 
     // If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
+    OLDTIME=[[NSDate date] timeIntervalSince1970];
 }
 
 - (void)applicationWillEnterForeground:(UIApplication *)application
 {
     // Called as part of the transition from the background to the inactive state; here you can undo many of the changes made on entering the background.
+    NSInteger NEWTIME = [[NSDate date] timeIntervalSince1970];
+    if (OLDTIME+2*3600<NEWTIME) {
+        UIAlertView *alert=[[UIAlertView alloc] initWithTitle:@"因长时间未操作，程序已自动关闭，请重新打开程序" message:nil delegate:self cancelButtonTitle:@"确认" otherButtonTitles:nil];
+        [alert show];
+    }
+    else if (OLDTIME+60<NEWTIME) {
+        [[[BSDataProvider alloc] init] logout];
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"LOGOUT" object:nil];
+    }
+
+}
+-(void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex
+{
+    [[[BSDataProvider alloc] init] logout];
+    [self exitApplication];
+}
+- (void)exitApplication {
+    
+    [UIView beginAnimations:@"exitApplication" context:nil];
+    
+    [UIView setAnimationDuration:0.5];
+    
+    [UIView setAnimationDelegate:self];
+    
+    // [UIView setAnimationTransition:UIViewAnimationCurveEaseOut forView:self.view.window cache:NO];
+    
+    [UIView setAnimationTransition:UIViewAnimationCurveEaseOut forView:self.window cache:NO];
+    
+    [UIView setAnimationDidStopSelector:@selector(animationFinished:finished:context:)];
+    
+    //self.view.window.bounds = CGRectMake(0, 0, 0, 0);
+    
+    self.window.bounds = CGRectMake(0, 0, 0, 0);
+    
+    [UIView commitAnimations];
+    
 }
 
 - (void)applicationDidBecomeActive:(UIApplication *)application
@@ -145,4 +184,5 @@
         }
     }
 }
+
 @end

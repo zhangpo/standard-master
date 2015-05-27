@@ -14,7 +14,9 @@
 {
     self = [super initWithFrame:frame];
     if (self) {
+        [self setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
         // Initialization code
+        [self setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
         _lblCount=[[UILabel alloc] initWithFrame:CGRectMake(70, 0, 50, 30)];
         _lblCount.backgroundColor=[UIColor clearColor];
         _lblCount.textAlignment=NSTextAlignmentRight;

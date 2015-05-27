@@ -2,8 +2,36 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>onelineQueryCardByCardNo</key>
+	<string>onelineQueryCardByCardNo</string>
+	<key>scanCode</key>
+	<string>scanCode</string>
+	<key>cancleUserCounp</key>
+	<string>cancleUserCounp</string>
+	<key>pushWeChatCheckOut</key>
+	<string>pushWeChatCheckOut</string>
+	<key>cancleUserPayment</key>
+	<string>cancleUserPayment</string>
+	<key>querySqlInterface</key>
+	<string>querySqlInterface</string>
+	<key>userPayment</key>
+	<string>userPayment</string>
+	<key>onelineCardOutAmt</key>
+	<string>onelineCardOutAmt</string>
+	<key>userCounp</key>
+	<string>userCounp</string>
+	<key>onelineQueryCardByMobTel</key>
+	<string>onelineQueryCardByMobTel</string>
+	<key>ComputingServicefee</key>
+	<string>ComputingServicefee</string>
+	<key>cancleProducts</key>
+	<string>cancleProducts</string>
 	<key>reCallElide</key>
 	<string>reCallElide</string>
+	<key>productEstimate</key>
+	<string>productEstimate</string>
+	<key>queryAllOrders</key>
+	<string>queryAllOrders</string>
 	<key>queryWholeProducts</key>
 	<string>queryWholeProducts</string>
 	<key>callElide</key>

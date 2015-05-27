@@ -8,6 +8,6 @@
 
 #import <UIKit/UIKit.h>
 
-@interface AKForecastSalesViewController : UIViewController
+@interface AKForecastSalesViewController : UIViewController<UITableViewDataSource,UITableViewDelegate>
 
 @end

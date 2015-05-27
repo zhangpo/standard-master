@@ -111,7 +111,7 @@ static NSString *LOGIN_TOKEN = nil;
     url = [[NSURL alloc] initWithString:[serviceUrl stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
     request = [[NSMutableURLRequest alloc] initWithURL:url
                                            cachePolicy:NSURLRequestUseProtocolCachePolicy
-                                       timeoutInterval:30.0];
+                                       timeoutInterval:65.0];
     [request setHTTPMethod:@"GET"];
     [request setValue:@"gzip" forHTTPHeaderField:@"accept-encoding"];
     
@@ -136,8 +136,6 @@ static NSString *LOGIN_TOKEN = nil;
     
     [url release];
     [request release];
-    
-	
 	return dicInfo;
 }
 - (void)showAlert

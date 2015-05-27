@@ -25,13 +25,13 @@
             shouldBeEnabled = "Yes"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
-            filePath = "XinLaDaoBookSystemCode/DefiniteModules/&#32467;&#31639;/&#20248;&#24800;&#26041;&#24335;/AKQueryViewController.m"
-            timestampString = "431328668.985406"
+            filePath = "XinLaDaoBookSystemCode/DefiniteModules/&#x7ed3;&#x7b97;/&#x4f1a;&#x5458;&#x64e6;&#x505a;New/AKsNewVipPayViewController.m"
+            timestampString = "453797289.71825"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1916"
-            endingLineNumber = "1916"
-            landmarkName = "-tableView:viewForHeaderInSection:"
+            startingLineNumber = "277"
+            endingLineNumber = "277"
+            landmarkName = "-ButtonClick:"
             landmarkType = "5">
          </BreakpointContent>
       </BreakpointProxy>
@@ -42,12 +42,28 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "XinLaDaoBookSystemCode/BSDataProvider.m"
-            timestampString = "431328263.467076"
+            timestampString = "454326271.002206"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "140"
-            endingLineNumber = "140"
-            landmarkName = "-delectdish:"
+            startingLineNumber = "1924"
+            endingLineNumber = "1924"
+            landmarkName = "-couponForTicket:"
+            landmarkType = "5">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "XinLaDaoBookSystemCode/Query/BSQueryViewController.m"
+            timestampString = "453982757.867734"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "907"
+            endingLineNumber = "907"
+            landmarkName = "-tuicai"
             landmarkType = "5">
          </BreakpointContent>
       </BreakpointProxy>

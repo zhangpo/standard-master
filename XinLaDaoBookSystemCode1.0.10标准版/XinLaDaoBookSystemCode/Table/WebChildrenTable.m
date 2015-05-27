@@ -7,7 +7,7 @@
 //
 
 #import "WebChildrenTable.h"
-#import "WebTableButton.h"
+#import "BSTableButton.h"
 #import "Singleton.h"
 
 @implementation WebChildrenTable
@@ -19,19 +19,30 @@
     if (self) {
         self.transform = CGAffineTransformIdentity;
         CVLocalizationSetting *localization=[CVLocalizationSetting sharedInstance];
-        [self setTitle:[localization localizedString:@"子台位"]];
+        [self setTitle:[localization localizedString:@"搭台"]];
         int i=0;
         /**
          *  生成子台位按钮
          */
         for (NSDictionary *dict in aryInfo) {
 //            (0, 0, 492, 354)
-            WebTableButton *button=[WebTableButton buttonWithType:UIButtonTypeCustom];
-            button.backgroundColor=[UIColor greenColor];
-            button.tableInfo=dict;
-            [button setTitle:[dict objectForKey:@"vtablenum"] forState:UIControlStateNormal];
-//            button.titleLabel.text=[dict objectForKey:@"vtablenum"];
-            button.frame=CGRectMake(20+(490-20)/3*(i%3), 50+55*(i/3),(490-20)/3-5, 50);
+            BSTableButton *button=[BSTableButton buttonWithType:UIButtonTypeCustom];
+            button.tableDic=dict;
+            button.manTitle.text=[dict objectForKey:@"people"];
+            button.frame=CGRectMake(30+145*(i%3),60+85*(i/3),135, 75);
+            NSString *strImage;
+            if ([[dict objectForKey:@"state"] intValue]==0) {
+                strImage=@"TableButtonEmpty.png";
+            }else
+            {
+                strImage=@"TableButtonOrdered.png";
+            }
+            UIImage *img = [[UIImage alloc] initWithContentsOfFile:[[NSBundle mainBundle] pathForResource:strImage ofType:nil]];
+        
+            [button setTitle:[NSString stringWithFormat:@"%@(%@)",[Singleton sharedSingleton].tableName,[dict objectForKey:@"tableName"]] forState:UIControlStateNormal];
+            [button setBackgroundImage:img forState:UIControlStateNormal];
+            
+            button.tableType=[[dict objectForKey:@"state"] intValue];
             [button addTarget:self action:@selector(buttonClick:) forControlEvents:UIControlEventTouchUpInside];
             button.tag=i;
             [self addSubview:button];
@@ -52,9 +63,9 @@
     return self;
 }
 #pragma mark - 自台位按钮事件
--(void)buttonClick:(WebTableButton *)btn
+-(void)buttonClick:(BSTableButton *)btn
 {
-    [_delegete ChiledrenTableButton:btn.tableInfo];
+    [_delegete ChiledrenTableButton:btn.tableDic];
 }
 #pragma mark - 取消按钮事件
 -(void)btnClick

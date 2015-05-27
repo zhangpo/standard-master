@@ -10,14 +10,12 @@
 #import "BSDataProvider.h"
 #import "BSChuckView.h"
 #import "BSQueryCell.h"
-#import "BSQueryCell.h"
-
+#import "BSPrintQueryView.h"
 #import "AKMySegmentAndView.h"
 
-@interface BSQueryViewController : UIViewController <UITableViewDelegate,UITableViewDataSource,ChuckViewDelegate,UISearchBarDelegate,BSQueryCellDelegate,UITextFieldDelegate,AKMySegmentAndViewDelegate>{
+@interface BSQueryViewController : UIViewController <UITableViewDelegate,UITableViewDataSource,ChuckViewDelegate,UISearchBarDelegate,BSQueryCellDelegate,UITextFieldDelegate,AKMySegmentAndViewDelegate,PrintQueryViewDelegate>{
     BSChuckView *vChuck;
     UITableView *tvOrder;
-    
 }
 
 @end

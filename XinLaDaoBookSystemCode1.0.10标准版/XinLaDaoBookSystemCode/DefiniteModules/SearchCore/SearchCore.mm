@@ -852,7 +852,7 @@ void Tree_Search(SearchTree* tree, u2char* aText, Array* aSearchedArray,Array* a
         dataToSearch = (SearchData*)cache->GetValue(cache,i);
         
         value = curSearchWordNum > 0 ? IsHit(tree, dataToSearch, iCurSeachData,FALSE):0;
-        if ( value >= 0 ) {
+        if ( value > 0 ) {
             // 搜索项匹配
             SearchSort *node = &searchSortPtr[matchCount++];
             node->data = dataToSearch;

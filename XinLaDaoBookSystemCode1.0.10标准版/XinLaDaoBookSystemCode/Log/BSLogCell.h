@@ -7,7 +7,7 @@
 //
 
 #import <UIKit/UIKit.h>
-#import "BSAddtionView.h"
+#import "AKAdditionView.h"
 
 
 @class BSLogCell;
@@ -19,7 +19,7 @@
 - (void)cell:(BSLogCell *)cell additionChanged:(NSMutableArray *)additons;
 @end
 
-@interface BSLogCell : UITableViewCell <UIAlertViewDelegate,AdditionViewDelegate>
+@interface BSLogCell : UITableViewCell <UIAlertViewDelegate,AKAdditionViewDelegate>
 @property (nonatomic,weak)__weak id<BSLogCellDelegate> delegate;//代理
 @property (nonatomic,strong) NSDictionary *dicInfo;//信息
 @property(nonatomic,strong)UIButton *btnAdd,*btnReduce,*jia,*jian,*btnEdit;

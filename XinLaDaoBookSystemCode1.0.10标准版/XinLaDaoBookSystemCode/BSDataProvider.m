@@ -13,7 +13,7 @@
 #import "AKsCanDanListClass.h"
 #import "AKsYouHuiListClass.h"
 #import "AKsCanDanListClass.h"
-#import "AKsNetAccessClass.h"
+//#import "AKsNetAccessClass.h"
 #import <QuartzCore/QuartzCore.h>
 #import <CommonCrypto/CommonCrypto.h>
 #import <AdSupport/AdSupport.h>
@@ -21,22 +21,12 @@
 #import "UIKitUtil.h"
 #import "CardJuanClass.h"
 #import "CVLocalizationSetting.h"
-
+#import "NSObject+SBJSON.h"
+#import "SBJSON.h"
 //#import "PaymentSelect.h"
 
 
 @implementation BSDataProvider
-
-//static BSDataProvider *sharedInstance = nil;
-//static NSDictionary *infoDict = nil;
-//static NSDictionary *dicCurrentPageConfig = nil;
-//static NSDictionary *dicCurrentPageConfigDetail = nil;
-//static NSArray *aryPageConfigList = nil;
-//static NSLock *_loadingMutex = nil;
-//static NSMutableArray *aryOrders = nil;
-//static NSArray *aryAllDetailPages = nil;
-//static NSArray *aryAllPages = nil;
-//static int dSendCount = 0;
 
 -(id)init
 {
@@ -61,7 +51,7 @@
 -(NSArray *)getClassById
 {
     NSArray *array = [BSDataProvider getDataFromSQLByCommand:@"select * from class order by GRP asc"];
-   
+    
     return array;
 }
 //预定台位----可不用
@@ -107,17 +97,27 @@
 -(void)delectcombo:(NSString *)tpcode andNUM:(NSString *)num
 {
     NSMutableDictionary *cacheDict = [NSMutableDictionary dictionaryWithDictionary:[NSDictionary dictionaryWithContentsOfFile:[@"FoodCache.plist" documentPath]]];
-    NSMutableArray *array=[cacheDict objectForKey:[Singleton sharedSingleton].Seat];
-A:
-    for (NSDictionary *dict in array) {
-        if ([[dict objectForKey:@"ITCODE"] isEqualToString:tpcode]&&[[dict objectForKey:@"TPNUM"]isEqualToString:num]) {
-            [array removeObject:dict];
-            goto A;
-            break;
+    NSMutableArray *array=[cacheDict objectForKey:[Singleton sharedSingleton].Time];
+    for (NSDictionary *orderDic in array) {
+        if ([[orderDic objectForKey:@"seat"] isEqualToString:[Singleton sharedSingleton].Seat]&&[[orderDic objectForKey:@"order"] isEqualToString:[Singleton sharedSingleton].CheckNum]) {
+            NSMutableArray *food=[orderDic objectForKey:@"food"];
+            if (food) {
+            A:
+                for (NSDictionary *dict in food) {
+                    if ([[dict objectForKey:@"ITCODE"] isEqualToString:tpcode]&&[[dict objectForKey:@"TPNUM"]isEqualToString:num]) {
+                        [food removeObject:dict];
+                        goto A;
+                        break;
+                    }
+                }
+                NSDictionary *dict=[[NSDictionary alloc] initWithObjectsAndKeys:food,@"food",[Singleton sharedSingleton].CheckNum,@"order",[Singleton sharedSingleton].Seat,@"seat", nil];
+                [array addObject:dict];
+                [cacheDict setObject:array forKey:[Singleton sharedSingleton].Time];
+                [cacheDict writeToFile:[@"FoodCache.plist" documentPath] atomically:NO];
+                return;
+            }
         }
     }
-    [cacheDict setObject:array forKey:[Singleton sharedSingleton].Seat];
-    [cacheDict writeToFile:[@"FoodCache.plist" documentPath] atomically:NO];
 }
 /**
  *  删除保存的单个菜品
@@ -127,17 +127,28 @@ A:
 -(void)delectdish:(NSString *)code
 {
     NSMutableDictionary *cacheDict = [NSMutableDictionary dictionaryWithDictionary:[NSDictionary dictionaryWithContentsOfFile:[@"FoodCache.plist" documentPath]]];
-    NSMutableArray *array=[cacheDict objectForKey:[Singleton sharedSingleton].Seat];
-A:
-    for (NSDictionary *dict in array) {
-        if ([[dict objectForKey:@"ITCODE"] isEqualToString:code]) {
-            [array removeObject:dict];
-            goto A;
-            break;
+    NSMutableArray *array=[cacheDict objectForKey:[Singleton sharedSingleton].Time];
+    for (NSDictionary *orderDic in array) {
+        if ([[orderDic objectForKey:@"seat"] isEqualToString:[Singleton sharedSingleton].Seat]&&[[orderDic objectForKey:@"order"] isEqualToString:[Singleton sharedSingleton].CheckNum]) {
+            NSMutableArray *food=[orderDic objectForKey:@"food"];
+            if (food) {
+            A:
+                for (NSDictionary *dict in food) {
+                    if ([[dict objectForKey:@"ITCODE"] isEqualToString:code]) {
+                        [food removeObject:dict];
+                        goto A;
+                        break;
+                    }
+                }
+                NSDictionary *dict=[[NSDictionary alloc] initWithObjectsAndKeys:food,@"food",[Singleton sharedSingleton].CheckNum,@"order",[Singleton sharedSingleton].Seat,@"seat", nil];
+                [array addObject:dict];
+                [cacheDict setObject:array forKey:[Singleton sharedSingleton].Time];
+                [cacheDict writeToFile:[@"FoodCache.plist" documentPath] atomically:NO];
+                return;
+            }
         }
     }
-    [cacheDict setObject:array forKey:[Singleton sharedSingleton].Seat];
-    [cacheDict writeToFile:[@"FoodCache.plist" documentPath] atomically:NO];
+    
 }
 /**
  *  缓存菜品信息
@@ -147,8 +158,51 @@ A:
 -(void)cache:(NSArray *)ary
 {
     NSMutableDictionary *cacheDict = [NSMutableDictionary dictionaryWithDictionary:[NSDictionary dictionaryWithContentsOfFile:[@"FoodCache.plist" documentPath]]];
-    [cacheDict setObject:ary forKey:[Singleton sharedSingleton].Seat];
+    NSMutableArray *array=nil;
+    if ([cacheDict objectForKey:[Singleton sharedSingleton].Time]) {
+        array=[NSMutableArray arrayWithArray:[cacheDict objectForKey:[Singleton sharedSingleton].Time]];
+    }else
+    {
+        array=[[NSMutableArray alloc] init];
+        [cacheDict setObject:array forKey:[Singleton sharedSingleton].Time];
+    }
+    NSDictionary *dict=[[NSDictionary alloc] initWithObjectsAndKeys:ary,@"food",[Singleton sharedSingleton].CheckNum,@"order",[Singleton sharedSingleton].Seat,@"seat", nil];
+    [array addObject:dict];
+    [cacheDict setObject:array forKey:[Singleton sharedSingleton].Time];
     [cacheDict writeToFile:[@"FoodCache.plist" documentPath] atomically:NO];
+}
+/**
+ *  查询缓存的菜品
+ *
+ *  @return
+ */
+-(NSMutableArray *)selectCache
+{
+    NSMutableDictionary *cacheDict = [NSMutableDictionary dictionaryWithDictionary:[NSDictionary dictionaryWithContentsOfFile:[@"FoodCache.plist" documentPath]]];
+    NSMutableArray *array=[cacheDict objectForKey:[Singleton sharedSingleton].Time];
+    for (NSDictionary *dict in array) {
+        if ([[dict objectForKey:@"seat"] isEqualToString:[Singleton sharedSingleton].Seat]&&[[dict objectForKey:@"order"] isEqualToString:[Singleton sharedSingleton].CheckNum]) {
+            return [dict objectForKey:@"food"];
+        }
+    }
+    return nil;
+}
+/**
+ *  删除缓存
+ */
+-(void)delectCache
+{
+    NSMutableDictionary *cacheDict = [NSMutableDictionary dictionaryWithDictionary:[NSDictionary dictionaryWithContentsOfFile:[@"FoodCache.plist" documentPath]]];
+     NSMutableArray *array=[cacheDict objectForKey:[Singleton sharedSingleton].Time];
+    for (NSDictionary *dict in array) {
+        if ([[dict objectForKey:@"seat"] isEqualToString:[Singleton sharedSingleton].Seat]&&[[dict objectForKey:@"order"] isEqualToString:[Singleton sharedSingleton].CheckNum]) {
+            [array removeObject:dict];
+            [cacheDict setObject:array forKey:[Singleton sharedSingleton].Time];
+            [cacheDict writeToFile:[@"FoodCache.plist" documentPath] atomically:NO];
+            break;
+        }
+    }
+    
 }
 /**
  *  附加项
@@ -163,7 +217,31 @@ A:
         ary=[BSDataProvider getDataFromSQLByCommand:@"select * from FoodFuJia where length(PCODE)=0 OR pcode like '%PCODE%'"];
     }
     return [NSArray arrayWithArray:ary];
-    
+}
+/**
+ *  webPos查询公共附加项
+ *
+ *  @return
+ */
+-(NSArray *)getAdditionsAndClass
+{
+    NSMutableArray * ary=[NSMutableArray array];
+    NSArray *array=[BSDataProvider getDataFromSQLByCommand:@"select pk_redefine_type from redefine_type"];
+    for (NSDictionary * dict in array) {
+        NSArray *arry=[BSDataProvider getDataFromSQLByCommand:[NSString stringWithFormat:@"SELECT * FROM redefine_type a LEFT JOIN FoodFuJia b WHERE a.pk_redefine_type=b.rgrp and b.rgrp='%@' AND (b.PCODE ='' or b.PCODE='~_PCODE_~')",[dict objectForKey:@"pk_redefine_type"]]];
+        [ary addObject:arry];
+    }
+    return ary;
+}
+-(NSArray *)SelectPrivateAddition:(NSString *)pcode
+{
+    NSMutableArray * ary=[NSMutableArray array];
+    NSArray *array=[BSDataProvider getDataFromSQLByCommand:[NSString stringWithFormat:@"select PRODUCTTC_ORDER from foodfujia where pcode='%@'  GROUP BY PRODUCTTC_ORDER",pcode]];
+    for (NSDictionary * dict in array) {
+        NSMutableArray *arry=[BSDataProvider getDataFromSQLByCommand:[NSString stringWithFormat:@"select * from foodfujia where PRODUCTTC_ORDER='%@' and pcode ='%@' ORDER BY DEFUALTS ASC",[dict objectForKey:@"PRODUCTTC_ORDER"],pcode]];
+        [ary addObject:arry];
+    }
+    return ary;
 }
 /**
  *  退菜原因
@@ -174,26 +252,7 @@ A:
     NSMutableArray *ary = [BSDataProvider getDataFromSQLByCommand:@"select * from ERRORCUSTOM where STATE=1"];
     return ary;
 }
-/**
- *  查询缓存的菜品
- *
- *  @return
- */
--(NSMutableArray *)selectCache
-{
-    NSMutableDictionary *cacheDict = [NSMutableDictionary dictionaryWithDictionary:[NSDictionary dictionaryWithContentsOfFile:[@"FoodCache.plist" documentPath]]];
-    NSMutableArray *array=[cacheDict objectForKey:[Singleton sharedSingleton].Seat];
-    return array;
-}
-/**
- *  删除缓存
- */
--(void)delectCache
-{
-    NSMutableDictionary *cacheDict = [NSMutableDictionary dictionaryWithDictionary:[NSDictionary dictionaryWithContentsOfFile:[@"FoodCache.plist" documentPath]]];
-    [cacheDict removeObjectForKey:[Singleton sharedSingleton].Seat];
-    [cacheDict writeToFile:[@"FoodCache.plist" documentPath] atomically:NO];
-}
+
 /**
  *  估清接口
  *
@@ -220,16 +279,30 @@ A:
  *
  *  @return
  */
--(NSDictionary *)priPrintOrder
+-(NSDictionary *)priPrintOrder:(NSDictionary *)info
 {
+    
     NSString *pdanum = [NSString stringWithFormat:@"%@",[self padID]];
     NSString *user=[NSString stringWithFormat:@"%@",[[Singleton sharedSingleton].userInfo objectForKey:@"user"]];
-    NSString *strParam = [NSString stringWithFormat:@"?&deviceId=%@&userCode=%@&tableNum=%@&orderId=%@",pdanum,user,[Singleton sharedSingleton].Seat,[Singleton sharedSingleton].CheckNum];
+    NSString *strParam = [NSString stringWithFormat:@"?&deviceId=%@&userCode=%@&tableNum=%@&orderId=%@&json=%@",pdanum,user,[Singleton sharedSingleton].Seat,[Singleton sharedSingleton].CheckNum,[info JSONRepresentation]];
     
     NSDictionary *dict = [self bsService:@"PrintOrder" arg:strParam];
-    
-    return dict;
+    if (dict) {
+        NSString *result = [[[dict objectForKey:@"ns:priPrintOrderResponse"] objectForKey:@"ns:return"] objectForKey:@"text"];
+        NSArray *ary = [result componentsSeparatedByString:@"@"];
+        if ([[ary objectAtIndex:0] intValue]==0) {
+            return [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:YES],@"Result",[ary objectAtIndex:1],@"Message", nil];
+        }else
+        {
+            return [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:NO],@"Result",[ary objectAtIndex:1],@"Message", nil];
+        }
+
+    }else
+    {
+        return [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:NO],@"Result",@"打印失败",@"Message", nil];
+    }
 }
+
 /**
  *  并台修改数据库
  *
@@ -263,14 +336,37 @@ A:
  */
 -(void)updateChangTable:(NSDictionary *)info :(NSString *)cheak
 {
-    FMDatabase *db=[[FMDatabase alloc] initWithPath:[BSDataProvider sqlitePath]];
-    if(![db open])
-    {
+    NSMutableDictionary *cacheDict = [NSMutableDictionary dictionaryWithDictionary:[NSDictionary dictionaryWithContentsOfFile:[@"FoodCache.plist" documentPath]]];
+    NSMutableArray *array=[cacheDict objectForKey:[Singleton sharedSingleton].Time];
+    for (NSDictionary *orderDic in array) {
+        if ([[orderDic objectForKey:@"seat"] isEqualToString:[info objectForKey:@"oldtable"]]&&[[orderDic objectForKey:@"order"] isEqualToString:cheak]) {
+            [orderDic setValue:[info objectForKey:@"newtable"] forKey:@"seat"];
+//            NSMutableArray *food=[orderDic objectForKey:@"food"];
+//            if (food) {
+//            A:
+//                for (NSDictionary *dict in food) {
+//                    if ([[dict objectForKey:@"ITCODE"] isEqualToString:code]) {
+//                        [food removeObject:dict];
+//                        goto A;
+//                        break;
+//                    }
+//                }
+//                NSDictionary *dict=[[NSDictionary alloc] initWithObjectsAndKeys:food,@"food",[Singleton sharedSingleton].CheckNum,@"order",[Singleton sharedSingleton].Seat,@"seat", nil];
+//                [array addObject:dict];
+                [cacheDict setObject:array forKey:[Singleton sharedSingleton].Time];
+                [cacheDict writeToFile:[@"FoodCache.plist" documentPath] atomically:NO];
+//                return;
+//            }
+        }
     }
-    NSString *str=[NSString stringWithFormat:@"UPDATE AllCheck SET tableNum = '%@' WHERE tableNum = '%@' and orderId='%@'",[info objectForKey:@"newtable"],[info objectForKey:@"oldtable"],cheak];
-    NSLog(@"%@",str);
-    [db executeUpdate:str];
-    [db close];
+//    FMDatabase *db=[[FMDatabase alloc] initWithPath:[BSDataProvider sqlitePath]];
+//    if(![db open])
+//    {
+//    }
+//    NSString *str=[NSString stringWithFormat:@"UPDATE AllCheck SET tableNum = '%@' WHERE tableNum = '%@' and orderId='%@'",[info objectForKey:@"newtable"],[info objectForKey:@"oldtable"],cheak];
+//    NSLog(@"%@",str);
+//    [db executeUpdate:str];
+//    [db close];
 }
 /**
  *  手势划菜
@@ -289,7 +385,7 @@ A:
     if ([info objectForKey:@"Weightflg"]==nil) {
         [info setValue:@"" forKey:@"Weightflg"];
     }
-    [fanfood appendFormat:@"%@@%@@%@@%@@%@@%@@%@@%@",[info objectForKey:@"Pcode"],[info objectForKey:@"Tpcode"],[info objectForKey:@"TPNUM"],[info objectForKey:@"fujiacode"],[info objectForKey:@"Weightflg"],[info objectForKey:@"ISTC"],[info objectForKey:@"count"],[info objectForKey:@"PKID"]];
+    [fanfood appendFormat:@"%@@%@@%@@%@@%@@%@@%@@%@@%@@%@@%@",[info objectForKey:@"Pcode"],[info objectForKey:@"Tpcode"],[info objectForKey:@"TPNUM"],[info objectForKey:@"fujiacode"],[info objectForKey:@"Weightflg"],[info objectForKey:@"ISTC"],[info objectForKey:@"count"],[info objectForKey:@"PKID"],[info objectForKey:@"Sublistid"],[info objectForKey:@"UnitCode"],[info objectForKey:@"istemp"]];
     [fanfood appendString:@";"];
     if (tag==0) {
         //        if ([[info objectForKey:@"Over"] intValue]==[[info objectForKey:@"pcount"] intValue]) {
@@ -320,6 +416,8 @@ A:
     //    user = [NSString stringWithFormat:@"%@",[[Singleton sharedSingleton].userInfo objectForKey:@"user"]];
     NSMutableString *mutfood = [NSMutableString string];
     NSMutableString *fanfood=[NSMutableString string];
+//    http://192.168.0.63:8080/ChoiceWebService/services/HHTSocket?/reCallElide?&deviceId=24&userCode=5&orderId=H000004&tableNum=23&productList=1119@@0@@@0@1@10011H00000420150413181500364271@@@1;
+//    http://192.168.0.63:8080/ChoiceWebService/services/HHTSocket?/callElide?&deviceId=24&userCode=5&orderId=H000004&tableNum=23&productList=1119@@0@@@0@1@10011H00000420150413181500364271@@1;
     for (NSDictionary *info in dish) {
         if ([[info objectForKey:@"Over"] intValue]==[[info objectForKey:@"pcount"] intValue]) {
             if ([info objectForKey:@"fujiacode"]==nil) {
@@ -328,7 +426,12 @@ A:
             if ([info objectForKey:@"Weightflg"]==nil) {
                 [info setValue:@"" forKey:@"Weightflg"];
             }
-            [fanfood appendFormat:@"%@@%@@%@@%@@%@@%@@%@@%@",[info objectForKey:@"Pcode"],[info objectForKey:@"Tpcode"],[info objectForKey:@"TPNUM"],[info objectForKey:@"fujiacode"],[info objectForKey:@"Weightflg"],[info objectForKey:@"ISTC"],[info objectForKey:@"Over"],[info objectForKey:@"PKID"]];
+            [fanfood appendFormat:@"%@@%@@%@@%@@%@@%@@%@@%@@%@@%@@%@",[info objectForKey:@"Pcode"],[info objectForKey:@"Tpcode"],[info objectForKey:@"TPNUM"],[info objectForKey:@"fujiacode"],[info objectForKey:@"Weightflg"],[info objectForKey:@"ISTC"],[info objectForKey:@"pcount"],[info objectForKey:@"PKID"],[info objectForKey:@"Sublistid"],[info objectForKey:@"UnitCode"],[info objectForKey:@"istemp"]];
+//            [mutDic setValue:[itemAry objectAtIndex:24] forKey:@"fujiaCount"];
+//            [mutDic setValue:[itemAry objectAtIndex:25] forKey:@"Sublistid"];
+//            [mutDic setValue:[itemAry objectAtIndex:26] forKey:@"UnitCode"];
+//            [mutDic setValue:[itemAry objectAtIndex:27] forKey:@"unitName"];
+//            [mutDic setValue:[itemAry objectAtIndex:28] forKey:@"istemp"];
             [fanfood appendString:@";"];
         }
         else
@@ -339,7 +442,7 @@ A:
             if ([info objectForKey:@"Weightflg"]==nil) {
                 [info setValue:@"" forKey:@"Weightflg"];
             }
-            [mutfood appendFormat:@"%@@%@@%@@%@@%@@%@@%d@%@",[info objectForKey:@"Pcode"],[info objectForKey:@"Tpcode"],[info objectForKey:@"TPNUM"],[info objectForKey:@"fujiacode"],[info objectForKey:@"Weightflg"],[info objectForKey:@"ISTC"],[[info objectForKey:@"pcount"] intValue]-[[info objectForKey:@"Over"] intValue],[info objectForKey:@"PKID"]];
+            [mutfood appendFormat:@"%@@%@@%@@%@@%@@%@@%@@%@@%@@%@@%@",[info objectForKey:@"Pcode"],[info objectForKey:@"Tpcode"],[info objectForKey:@"TPNUM"],[info objectForKey:@"fujiacode"],[info objectForKey:@"Weightflg"],[info objectForKey:@"ISTC"],[info objectForKey:@"pcount"],[info objectForKey:@"PKID"],[info objectForKey:@"Sublistid"],[info objectForKey:@"UnitCode"],[info objectForKey:@"istemp"]];
             [mutfood appendString:@";"];
         }
     }
@@ -480,12 +583,12 @@ A:
 }
 
 //查询台位菜品
--(NSMutableArray *)queryProduct:(NSString *)seat
+-(NSMutableArray *)queryProduct1:(NSString *)seat
 {
     NSString *pdanum = [NSString stringWithFormat:@"%@",[self padID]];
     NSString *user=[NSString stringWithFormat:@"%@",[[Singleton sharedSingleton].userInfo objectForKey:@"user"]];
     NSString *tableNum=seat;
-    NSString *api=[NSString stringWithFormat:@"?&deviceId=%@&userCode=%@&tableNum=%@&manCounts=%@&womanCounts=%@&orderId=%@&chkCode=%@&comOrDetach=%@",pdanum,user,tableNum,@"",@"",@"",@"",@"0"];
+    NSString *api=[NSString stringWithFormat:@"?&deviceId=%@&userCode=%@&tableNum=&manCounts=%@&womanCounts=%@&orderId=%@&chkCode=%@&comOrDetach=%@",pdanum,user,@"",@"",seat,@"",@"0"];
     NSDictionary *dict = [self bsService:@"queryProduct" arg:api];
     NSString *result = [[[dict objectForKey:@"ns:queryProductResponse"] objectForKey:@"ns:return"] objectForKey:@"text"];
     if ([[[result componentsSeparatedByString:@"@"] objectAtIndex:0] intValue]==0) {
@@ -531,7 +634,12 @@ A:
                     for (NSString *str in ary5) {
                         addtition+=[str floatValue];
                     }
+                    if (addtition==0) {
+                        candan.fujiaprice=@"";
+                    }else
+                    {
                     candan.fujiaprice=[NSString stringWithFormat:@"%.2f",addtition];
+                    }
                     candan.fujianame=FujiaName;
                     candan.price=[ary3 objectAtIndex:12];
                     candan.unit=[ary3 objectAtIndex:16];
@@ -618,47 +726,56 @@ A:
     }
     else
     {
-        [dataDic setValue:[ary objectAtIndex:0] forKey:@"tag"];
+        [dataDic setValue:[ary objectAtIndex:0] forKey:@"Result"];
         if ([[ary objectAtIndex:0] intValue]==0) {
-            NSArray *valuearray = [str1 componentsSeparatedByString:@"#"];
-            if([[valuearray objectAtIndex:1]isEqualToString:@"1"])
-            {
-                AKsNetAccessClass *netAccess =[AKsNetAccessClass sharedNetAccess];
-                NSArray *cardValue=[[valuearray objectAtIndex:2]componentsSeparatedByString:@"@"];
-                NSMutableDictionary *dict=[[NSMutableDictionary alloc]init];
-                
-                
-                [dict setObject:@"" forKey:@"zhangdanId"];
-                [dict setObject:[cardValue objectAtIndex:0] forKey:@"phoneNum"];
-                [dict setObject:[Singleton sharedSingleton].Time forKey:@"dateTime"];
-                [dict setObject:[cardValue objectAtIndex:1] forKey:@"cardNum"];
-                [dict setObject:[cardValue objectAtIndex:4] forKey:@"IntegralOverall"];
-                
-                
-                netAccess.JiFenKeYongMoney=[cardValue objectAtIndex:4];
-                netAccess.ChuZhiKeYongMoney=[cardValue objectAtIndex:3];
-                netAccess.VipCardNum=[cardValue objectAtIndex:1];
-                
-                NSArray *VipJuan=[[NSArray alloc]initWithArray:[[cardValue objectAtIndex:7]componentsSeparatedByString:@";" ]];
-                NSLog(@"%@",VipJuan);
-                NSMutableArray *cardJuanArray=[[NSMutableArray alloc]init];
-                for (int i=0; i<[VipJuan count]-1; i++)
+            NSArray *ary2 = [str1 componentsSeparatedByString:@"&"];
+            NSMutableArray *returnArray=[[NSMutableArray alloc] init];
+            for (NSString *string in ary2) {
+                NSArray *valuearray=[string componentsSeparatedByString:@"#"];
+                if([[valuearray objectAtIndex:1]isEqualToString:@"1"])
                 {
-                    NSArray *values=[[VipJuan objectAtIndex:i] componentsSeparatedByString:@","];
-                    CardJuanClass *cardJuan=[[CardJuanClass alloc]init];
-                    cardJuan.JuanId=[values objectAtIndex:0];
-                    cardJuan.JuanMoney=[NSString stringWithFormat:@"%.2f",[[values objectAtIndex:1]floatValue]/100.0];
-                    cardJuan.JuanName=[values objectAtIndex:2];
-                    cardJuan.JuanNum=[values objectAtIndex:3];
-                    [cardJuanArray addObject:cardJuan];
+                    AKsNetAccessClass *netAccess =[AKsNetAccessClass sharedNetAccess];
+                    NSArray *cardValue=[[valuearray objectAtIndex:2]componentsSeparatedByString:@"@"];
+                    NSMutableDictionary *dict=[[NSMutableDictionary alloc]init];
                     
+                    
+                    [dict setObject:@"" forKey:@"zhangdanId"];
+                    [dict setObject:[cardValue objectAtIndex:0] forKey:@"phoneNum"];
+                    [dict setObject:[Singleton sharedSingleton].Time forKey:@"dateTime"];
+                    [dict setObject:[cardValue objectAtIndex:1] forKey:@"cardNum"];
+                    [dict setObject:[cardValue objectAtIndex:4] forKey:@"IntegralOverall"];
+                    netAccess.JiFenKeYongMoney=[cardValue objectAtIndex:4];
+                    netAccess.ChuZhiKeYongMoney=[cardValue objectAtIndex:3];
+                    netAccess.VipCardNum=[cardValue objectAtIndex:1];
+                    
+                    NSArray *VipJuan=[[NSArray alloc]initWithArray:[[cardValue objectAtIndex:7]componentsSeparatedByString:@";" ]];
+                    NSMutableArray *cardJuanArray=[[NSMutableArray alloc]init];
+                    for (int i=0; i<[VipJuan count]-1; i++)
+                    {
+                        NSArray *values=[[VipJuan objectAtIndex:i] componentsSeparatedByString:@","];
+                        CardJuanClass *cardJuan=[[CardJuanClass alloc]init];
+                        cardJuan.JuanId=[values objectAtIndex:0];
+                        cardJuan.JuanMoney=[NSString stringWithFormat:@"%.2f",[[values objectAtIndex:1]floatValue]/100.0];
+                        cardJuan.JuanName=[values objectAtIndex:2];
+                        cardJuan.JuanNum=[values objectAtIndex:3];
+                        [cardJuanArray addObject:cardJuan];
+                        
+                    }
+                    netAccess.CardJuanArray=cardJuanArray;
+                    netAccess.showVipMessageDict=dict;
                 }
-                netAccess.CardJuanArray=cardJuanArray;
-                netAccess.showVipMessageDict=dict;
+                NSArray *array=[[valuearray objectAtIndex:0] componentsSeparatedByString:@";"];
+                NSMutableDictionary *dictV=[[NSMutableDictionary alloc] init];
+                [dictV setObject:[[[array objectAtIndex:0] componentsSeparatedByString:@"@"] lastObject] forKey:@"CheckNum"];
+                [dictV setObject:[array objectAtIndex:1] forKey:@"man"];
+                [dictV setObject:[array objectAtIndex:2] forKey:@"woman"];
+                [dictV setObject:[array objectAtIndex:3] forKey:@"people"];
+                [dictV setObject:[array objectAtIndex:4] forKey:@"state"];
+                [dictV setObject:[array objectAtIndex:5] forKey:@"tableName"];
+                [dictV setObject:[array objectAtIndex:6] forKey:@"ISFENGTAI"];
+                [returnArray addObject:dictV];
             }
-            NSArray *array=[[ary objectAtIndex:1] componentsSeparatedByString:@";"];
-            
-            [dataDic setValue:array forKey:@"message"];
+            [dataDic setValue:returnArray forKey:@"message"];
             return [NSDictionary dictionaryWithDictionary:dataDic];
         }
         else
@@ -703,7 +820,7 @@ A:
  *
  *  @return
  */
--(NSDictionary *)checkAuth:(NSDictionary *)info
+-(NSDictionary *)checkAuth1:(NSDictionary *)info
 {
     NSString *pdanum = [NSString stringWithFormat:@"%@",[self padID]];
     NSString *user=[info objectForKey:@"user"];
@@ -736,7 +853,6 @@ A:
     }
     NSString *strParam = [NSString stringWithFormat:@"?&deviceId=%@&userCode=%@&orderId=%@&remarkIdList=%@&remarkList=%@&flag=%@",pdanum,userCode,orderId,remarkId,remark,@"1"];
     NSDictionary *dict1 = [self bsService:@"specialRemark" arg:strParam];
-    NSLog(@"%@",dict1);
     return dict1;
 }
 /**
@@ -775,17 +891,17 @@ A:
                 NSString *str = [ary objectAtIndex:z];
                 NSArray *itemAry = [str componentsSeparatedByString:@"@"];
                 NSMutableDictionary *mutDic = [NSMutableDictionary dictionary];
-                [mutDic setValue:[itemAry objectAtIndex:1]  forKey:@"orderId"];
-                [mutDic setValue:[itemAry objectAtIndex:2]  forKey:@"PKID"];
-                [mutDic setValue:[itemAry objectAtIndex:3]  forKey:@"Pcode"];
-                [mutDic setValue:[itemAry objectAtIndex:4]  forKey:@"PCname"];
-                [mutDic setValue:[itemAry objectAtIndex:5]  forKey:@"Tpcode"];
-                [mutDic setValue:[itemAry objectAtIndex:6]  forKey:@"TPNAME"];
-                [mutDic setValue:[itemAry objectAtIndex:7]  forKey:@"TPNUM"];
-                [mutDic setValue:[itemAry objectAtIndex:8]  forKey:@"pcount"];
-                [mutDic setValue:[itemAry objectAtIndex:9]  forKey:@"promonum"];
-                [mutDic setValue:[itemAry objectAtIndex:10] forKey:@"fujiacode"];
-                [mutDic setValue:[itemAry objectAtIndex:11] forKey:@"fujianame"];
+                [mutDic setValue:[itemAry objectAtIndex:1]   forKey:@"orderId"];
+                [mutDic setValue:[itemAry objectAtIndex:2]   forKey:@"PKID"];
+                [mutDic setValue:[itemAry objectAtIndex:3]   forKey:@"Pcode"];
+                [mutDic setValue:[itemAry objectAtIndex:4]   forKey:@"PCname"];
+                [mutDic setValue:[itemAry objectAtIndex:5]   forKey:@"Tpcode"];
+                [mutDic setValue:[itemAry objectAtIndex:6]   forKey:@"TPNAME"];
+                [mutDic setValue:[itemAry objectAtIndex:7]   forKey:@"TPNUM"];
+                [mutDic setValue:[itemAry objectAtIndex:8]   forKey:@"pcount"];
+                [mutDic setValue:[itemAry objectAtIndex:9]   forKey:@"promonum"];
+                [mutDic setValue:[itemAry objectAtIndex:10]  forKey:@"fujiacode"];
+                [mutDic setValue:[itemAry objectAtIndex:11]  forKey:@"fujianame"];
                 [mutDic setValue:[itemAry objectAtIndex:12]  forKey:@"talPreice"];
                 [mutDic setValue:[itemAry objectAtIndex:13]  forKey:@"fujiaPrice"];
                 [mutDic setValue:[itemAry objectAtIndex:14]  forKey:@"weight"];
@@ -797,7 +913,19 @@ A:
                 [mutDic setValue:[itemAry objectAtIndex:20]  forKey:@"IsQuit"];//推菜标志（0为退菜，1为正常）
                 [mutDic setValue:[itemAry objectAtIndex:21]  forKey:@"QuitCause"];//退菜原因
                 [mutDic setValue:[itemAry objectAtIndex:22]  forKey:@"CLASS"];
-                [mutDic setValue:[itemAry objectAtIndex:23] forKey:@"price"];
+                [mutDic setValue:[itemAry objectAtIndex:23]  forKey:@"price"];
+                if ([itemAry count]>24) {
+                    [mutDic setValue:[itemAry objectAtIndex:24] forKey:@"fujiaCount"];
+                    [mutDic setValue:[itemAry objectAtIndex:25] forKey:@"Sublistid"];
+                    [mutDic setValue:[itemAry objectAtIndex:26] forKey:@"UnitCode"];
+                    [mutDic setValue:[itemAry objectAtIndex:27] forKey:@"unitName"];
+                    [mutDic setValue:[itemAry objectAtIndex:28] forKey:@"istemp"];
+                    [mutDic setValue:[itemAry objectAtIndex:29] forKey:@"tempCode"];
+                    [mutDic setValue:[itemAry objectAtIndex:30] forKey:@"tempName"];
+                    if ([[itemAry objectAtIndex:28] intValue]==1) {
+                        [mutDic setValue:[NSString stringWithFormat:@"%@-%@",[itemAry objectAtIndex:4],[itemAry objectAtIndex:30]] forKey:@"PCname"];
+                    }
+                }
                 [aryResult addObject:mutDic];
             }
             
@@ -938,7 +1066,7 @@ A:
 }
 
 /**
- *  发生菜品
+ *  发送菜品
  *
  *  @param ary  菜品信息
  *  @param info 发生信息
@@ -953,35 +1081,40 @@ A:
     NSString *timeString = [NSString stringWithFormat:@"%.f",a];//时间戳
     NSMutableString *mutfood = [NSMutableString string];
     int x = 0;
+//    PLUSD
     for (int i=0; i<ary.count; i++) {
         NSDictionary *dict=[ary objectAtIndex:i];
-        NSString *PKID=@"",*Pcode=@"",*Tpcode=@"",*TPNUM=@"",*pcount=@"",*Price=@"",*Weight=@"",*Weightflg=@"",*isTC=@"",*promonum=@"",*UNIT=@"",*promoReason=@"";
-        NSMutableString *Fujiacode,*FujiaName,*FujiaPrice;
+        NSString *PKID=@"",*Pcode=@"",*Tpcode=@"",*TPNUM=@"",*pcount=@"",*Price=@"",*Weight=@"",*Weightflg=@"",*isTC=@"",*promonum=@"",*UNIT=@"",*promoReason=@"",*unitKay=@"",*istemp=@"0",*DES=@"";
+        NSMutableString *Fujiacode,*FujiaName,*FujiaPrice,*FujiaCount;
         Fujiacode=[NSMutableString string];
         FujiaName=[NSMutableString string];
         FujiaPrice=[NSMutableString string];
+        FujiaCount=[NSMutableString string];
         Price=[dict objectForKey:@"PRICE"];//价格
         pcount=[dict objectForKey:@"total"];//数量
         Weight=[dict objectForKey:@"Weight"];//第二单位重量
         Weightflg=[dict objectForKey:@"UNITCUR"];//第二单位标示
         promonum=[dict objectForKey:@"promonum"];//赠送数量
-        promoReason=[dict objectForKey:@"promoReason"];//赠送原因
+        promoReason=[dict objectForKey:@"promoReason"]==nil?@"":[dict objectForKey:@"promoReason"];//赠送原因
         isTC=[dict objectForKey:@"ISTC"];//套餐
         TPNUM=[dict objectForKey:@"TPNUM"];//套餐标示
         UNIT=[dict objectForKey:@"UNIT"];//单位
         NSArray *array=[dict objectForKey:@"addition"];//附加项
         for (NSDictionary *dict1 in array) {
-            [Fujiacode appendFormat:@"%@",[dict1 objectForKey:@"FOODFUJIA_ID"]];//附加项编码
+            [Fujiacode appendFormat:@"%@",[dict1 objectForKey:@"FCODE"]];//附加项编码
             [Fujiacode appendString:@"!"];
-            [FujiaName appendFormat:@"%@",[dict1 objectForKey:@"FoodFuJia_Des"]];//附加项名称
+            [FujiaName appendFormat:@"%@",[dict1 objectForKey:@"FNAME"]];//附加项名称
             [FujiaName appendString:@"!"];
-            [FujiaPrice appendFormat:@"%@",[dict1 objectForKey:@"FoodFujia_Checked"]];//附加项价格
+            [FujiaPrice appendFormat:@"%@",[dict1 objectForKey:@"FPRICE"]];//附加项价格
             [FujiaPrice appendString:@"!"];
+            [FujiaCount appendFormat:@"%@",[dict1 objectForKey:@"total"]];//附加项价格
+            [FujiaCount appendString:@"!"];
+            
         }
         /**
          *  判断是套餐名称
          */
-        if ([[dict objectForKey:@"ISTC"] intValue]==1&&![dict objectForKey:@"SUBID"]) {
+        if ([[dict objectForKey:@"ISTC"] intValue]==1&&![dict objectForKey:@"CNT"]) {
             PKID=[NSString stringWithFormat:@"%@%@%@%@%@%d",pdanum,[[Singleton sharedSingleton].userInfo objectForKey:@"user"],[Singleton sharedSingleton].CheckNum,[Singleton sharedSingleton].Seat,timeString,x];
             Pcode=[dict objectForKey:@"ITCODE"];
             Tpcode=Pcode;//菜品编码与套餐编码相同
@@ -992,7 +1125,7 @@ A:
             /**
              *  判断是否是套餐明细
              */
-            if ([dict objectForKey:@"SUBID"])
+            if ([dict objectForKey:@"CNT"])
             {
                 PKID=[NSString stringWithFormat:@"%@%@%@%@%@%d",pdanum,[[Singleton sharedSingleton].userInfo objectForKey:@"user"],[Singleton sharedSingleton].CheckNum,[Singleton sharedSingleton].Seat,timeString,x-1];
                 Pcode=[dict objectForKey:@"PCODE1"];//菜品编码
@@ -1006,9 +1139,17 @@ A:
                 x++;
             }
         }
-        [mutfood appendFormat:@"%@@%@@%@@%@@%@@%@@%@@%@@%@@%@@%@@%@@%@@%@@%@@%@@%@",PKID,Pcode,@"",Tpcode,@"",TPNUM,pcount,promonum,Fujiacode,FujiaName,Price,FujiaPrice,Weight,Weightflg,UNIT,isTC,promoReason];
+    
+        if ([isTC intValue]!=1) {
+            unitKay=[dict objectForKey:[dict objectForKey:@"UNITKAY"]==nil?@"UNIT1":[dict objectForKey:@"UNITKAY"]];
+        }
+        
+        istemp=[dict objectForKey:@"ISTEMP"];
+        DES=[[dict objectForKey:@"ISTEMP"] intValue]==1?[dict objectForKey:@"DES"]:@"";
+        [mutfood appendFormat:@"%@@%@@%@@%@@%@@%@@%@@%@@%@@%@@%@@%@@%@@%@@%@@%@@%@@%@@%@@%@@%@",PKID,Pcode,@"",Tpcode,@"",TPNUM,pcount,promonum,Fujiacode,FujiaName,Price,FujiaPrice,Weight,Weightflg,UNIT,isTC,promoReason,FujiaCount,unitKay,istemp,DES];
         [mutfood appendString:@";"];
     }
+    
     NSString *strParam = [NSString stringWithFormat:@"?&deviceId=%@&userCode=%@&chkCode=%@&tableNum=%@&orderId=%@&productList=%@&rebackReason=&immediateOrWait=%@",pdanum,[[Singleton sharedSingleton].userInfo objectForKey:@"user"],@"",[Singleton sharedSingleton].Seat,[Singleton sharedSingleton].CheckNum,mutfood,[info objectForKey:@"immediateOrWait"]];
     
     NSDictionary *dict3 = [self bsService:@"checkFoodAvailable" arg:strParam];
@@ -1042,67 +1183,10 @@ A:
  */
 +(NSArray *)tableNum:(NSString *)table orderID:(NSString *)order
 {
-    
     NSMutableArray *ary = [BSDataProvider getDataFromSQLByCommand:[NSString stringWithFormat:@"select * from AllCheck where tableNum = '%@'and orderId='%@' and send='%@'",table,order,@"1"]];
     return ary;
 }
-//-(NSArray *)AllCheak{
-//    NSMutableArray *ary = [NSMutableArray array];
-//    
-//    NSString *path = [BSDataProvider sqlitePath];
-//    sqlite3 *db;
-//    sqlite3_stmt *stat;
-//    NSString *sqlcmd;
-//    if (sqlite3_open([path UTF8String], &db)==SQLITE_OK){
-//        sqlcmd = [NSString stringWithFormat:@"select Pcode,PCname,sum(Over),sum(pcount),ISTC from AllCheck where tableNum='%@' AND orderId = '%@' AND Time='%@' AND ISTC='%@' AND Send='%@' GROUP BY Pcode;",[Singleton sharedSingleton].Seat,[Singleton sharedSingleton].CheckNum,[Singleton sharedSingleton].Time,@"0",@"1"];
-//        NSLog(@"%@",sqlcmd);
-//        if (sqlite3_prepare_v2(db, [sqlcmd UTF8String], -1, &stat, nil)==SQLITE_OK){
-//            while (sqlite3_step(stat)==SQLITE_ROW) {
-//                int count = sqlite3_column_count(stat);
-//                NSMutableDictionary *mutDC = [NSMutableDictionary dictionary];
-//                for (int i=0;i<count;i++){
-//                    char *foodKey = (char *)sqlite3_column_name(stat, i);
-//                    char *foodValue = (char *)sqlite3_column_text(stat, i);
-//                    NSString *strKey = nil,*strValue = nil;
-//                    if (foodKey)
-//                        strKey = [NSString stringWithUTF8String:foodKey];
-//                    if (foodValue)
-//                        strValue = [NSString stringWithUTF8String:foodValue];
-//                    if (strKey && strValue)
-//                        [mutDC setObject:strValue forKey:strKey];
-//                }
-//                [ary addObject:mutDC];
-//            }
-//        }
-//        sqlite3_finalize(stat);
-//    }
-//    if (sqlite3_open([path UTF8String], &db)==SQLITE_OK){
-//        sqlcmd = [NSString stringWithFormat:@"select Pcode,PCname,pcount,ISTC,Over,Tpcode,CNT from AllCheck where tableNum='%@' AND orderId = '%@' AND Time='%@' AND ISTC='%@' AND Send='%@'",[Singleton sharedSingleton].Seat,[Singleton sharedSingleton].CheckNum,[Singleton sharedSingleton].Time,@"1",@"1"];
-//        NSLog(@"%@",sqlcmd);
-//        if (sqlite3_prepare_v2(db, [sqlcmd UTF8String], -1, &stat, nil)==SQLITE_OK){
-//            while (sqlite3_step(stat)==SQLITE_ROW) {
-//                int count = sqlite3_column_count(stat);
-//                NSMutableDictionary *mutDC = [NSMutableDictionary dictionary];
-//                for (int i=0;i<count;i++){
-//                    char *foodKey = (char *)sqlite3_column_name(stat, i);
-//                    char *foodValue = (char *)sqlite3_column_text(stat, i);
-//                    NSString *strKey = nil,*strValue = nil;
-//                    if (foodKey)
-//                        strKey = [NSString stringWithUTF8String:foodKey];
-//                    if (foodValue)
-//                        strValue = [NSString stringWithUTF8String:foodValue];
-//                    if (strKey && strValue)
-//                        [mutDC setObject:strValue forKey:strKey];
-//                }
-//                [ary addObject:mutDC];
-//            }
-//        }
-//        sqlite3_finalize(stat);
-//    }
-//    sqlite3_close(db);
-//    NSLog(@"%@",ary);
-//    return ary;
-//}
+
 /**
  *  获取唯一标示
  *
@@ -1138,17 +1222,40 @@ A:
  *  @return
  */
 - (NSDictionary *)pStart:(NSDictionary *)info{
-    NSString *pdaid,*user,*table,*mancount,*womancounts;
+    NSString *pdaid,*user,*table,*mancount,*womancounts,*openTag;
     pdaid = [NSString stringWithFormat:@"%@",[self padID]];
     user = [[Singleton sharedSingleton].userInfo objectForKey:@"user"];
-    table = [info objectForKey:@"table"];//台位号
+    table = [info objectForKey:@"name"];//台位号
     mancount = [info objectForKey:@"man"];//男人数
     womancounts = [info objectForKey:@"woman"];//女人数
-    NSString *strParam = [NSString stringWithFormat:@"?&deviceId=%@&userCode=%@&tableNum=%@&manCounts=%@&womanCounts=%@&ktKind=%@&openTablemwyn=%@",pdaid,user,table,mancount,womancounts,@"1",[info objectForKey:@"tag"]];
+    openTag=[info objectForKey:@"openTag"];
+    NSString *strParam = [NSString stringWithFormat:@"?&deviceId=%@&userCode=%@&tableNum=%@&manCounts=%@&womanCounts=%@&ktKind=%@&openTablemwyn=%@",pdaid,user,table,mancount,womancounts,openTag,[info objectForKey:@"tag"]];
     NSDictionary *dict = [[self bsService:@"pStart" arg:strParam] objectForKey:@"ns:startcResponse"];
     return dict;
 }
-
+#pragma mark 计算服务费
+-(NSDictionary *)ComputingServicefee:(NSString *)type
+{
+    /*
+    deviceId：设备编号
+    
+    userCode：用户编码
+    
+    type: 操作类型  0 取消服务费  1 计算服务费
+    
+    tableNum：桌号
+    
+    ordered   账单号
+    
+    lclass    账单类型： 1 堂食  2 外带  3 外送 ….
+     */
+    NSString *pdaid,*user;
+    pdaid = [NSString stringWithFormat:@"%@",[self padID]];
+    user = [[Singleton sharedSingleton].userInfo objectForKey:@"user"];
+    NSString *strParam = [NSString stringWithFormat:@"?&deviceId=%@&userCode=%@&tableNum=%@&type=%@&orderId=%@&lclass=%@",pdaid,user,[Singleton sharedSingleton].Seat,type,[Singleton sharedSingleton].CheckNum,@"1"];
+    NSDictionary *dict = [[self bsService:@"ComputingServicefee" arg:strParam] objectForKey:@"ns:ComputingServicefeeResponse"];
+    return dict;
+}
 /**
  *  查询所有区域
  *
@@ -1304,7 +1411,27 @@ A:
  *  @return
  */
 + (NSMutableArray *)getFoodList:(NSString *)cmd{
+    
     NSMutableArray *ary = [BSDataProvider getDataFromSQLByCommand:[NSString stringWithFormat:@"select * from food where %@",cmd]];
+    NSArray *unitArray=[BSDataProvider getDataFromSQLByCommand:@"select * from measdoc"];
+    for (NSDictionary *dict in ary) {
+        NSLog(@"%@",[dict objectForKey:@"DES"]);
+        for (int i=0; i<6; i++) {
+            if ([[dict objectForKey:[NSString stringWithFormat:@"UNIT%d",i+1]] length]>0&&![[dict objectForKey:[NSString stringWithFormat:@"UNIT%d",i+1]] isEqualToString:[NSString stringWithFormat:@"~_UNIT%d_~",i+1]]) {
+                for (NSDictionary *unit in unitArray) {
+                    if ([[dict objectForKey:[NSString stringWithFormat:@"UNIT%d",i+1]] isEqualToString:[unit objectForKey:@"code"]]) {
+                        [dict setValue:[unit objectForKey:@"name"] forKey:[NSString stringWithFormat:@"UNITS%d",i+1]];
+                        if (i>=1) {
+                            //多规格加标识
+                            [dict setValue:@"1" forKey:@"ISUNITS"];
+                        }
+                        break;
+                    }
+                }
+                
+            }
+        }
+    }
     return [NSMutableArray arrayWithArray:ary];
 }
 
@@ -1315,18 +1442,25 @@ A:
  *
  *  @return
  */
--(NSMutableArray *)combo:(NSString *)tag{
+-(NSMutableArray *)combo:(NSDictionary *)tag{
     
     /**
      *  根据套餐编码查询组
      */
-    NSArray *groupArray=[BSDataProvider getDataFromSQLByCommand:[NSString stringWithFormat:@"SELECT PNAME,PRICE1,PCODE1,PRODUCTTC_ORDER,MAXCNT,MINCNT FROM products_sub a WHERE defualtS = '0' and pcode='%@' GROUP BY PRODUCTTC_ORDER ORDER BY PRODUCTTC_ORDER  ASC",tag]];
+    NSArray *groupArray=[BSDataProvider getDataFromSQLByCommand:[NSString stringWithFormat:@"SELECT PNAME,PRICE1,PCODE1,PRODUCTTC_ORDER,MAXCNT,MINCNT FROM products_sub a WHERE defualtS = '0' and pcode='%@' GROUP BY PRODUCTTC_ORDER ORDER BY PRODUCTTC_ORDER  ASC",[tag objectForKey:@"ITCODE"]]];
     NSMutableArray *returnGroupArray=[NSMutableArray array];
     for (NSDictionary *groupDic in groupArray) {
         /**
          *  套餐明细
          */
-        NSMutableArray *productArray=[BSDataProvider getDataFromSQLByCommand:[NSString stringWithFormat:@"SELECT * FROM food a left JOIN products_sub b on a.itcode=b.pcode WHERE b.pcode='%@' and PRODUCTTC_ORDER='%@' ORDER BY defualtS ASC",tag,[groupDic objectForKey:@"PRODUCTTC_ORDER"]]];
+        NSMutableArray *productArray;
+        if ([[tag objectForKey:@"TCMONEYMODE"] intValue]==2) {
+            productArray=[BSDataProvider getDataFromSQLByCommand:[NSString stringWithFormat:@"SELECT c.FUJIAMODE,c.ISTEMP,c.PRICE,b.SUBID,b.PNAME,b.CNT,c.DES,b.PRODUCTTC_ORDER,b.NADJUSTPRICE,b.GROUPTITLE,b.MAXCNT,b.MINCNT,b.PCODE,b.PCODE1,b.defualtS,a.ISTC,a.TCMONEYMODE,c.UNIT FROM food a,food c LEFT JOIN products_sub b ON a.itcode = b.pcode WHERE b.pcode = '%@' AND b.PRODUCTTC_ORDER = '%@' AND c.itcode in (b.pcode1) ORDER BY defualtS ASC",[tag objectForKey:@"ITCODE"],[groupDic objectForKey:@"PRODUCTTC_ORDER"]]];
+        }else
+        {
+            productArray=[BSDataProvider getDataFromSQLByCommand:[NSString stringWithFormat:@"SELECT a.*, b.*,c.FUJIAMODE AS FUJIAMODE,c.ISTEMP as ISTEMP,b.PNAME FROM food a,food c LEFT JOIN products_sub b ON a.itcode = b.pcode WHERE b.pcode = '%@' AND b.PRODUCTTC_ORDER = '%@' AND c.itcode in (b.pcode1) ORDER BY defualtS ASC",[tag objectForKey:@"ITCODE"],[groupDic objectForKey:@"PRODUCTTC_ORDER"]]];
+        }
+        
         /**
          *  将改组的最大最小数量放入数据中
          */
@@ -1373,7 +1507,7 @@ A:
             /**
              *  套餐明细
              */
-            NSMutableArray *productArray=[BSDataProvider getDataFromSQLByCommand:[NSString stringWithFormat:@"SELECT * FROM food a left JOIN products_sub b on a.ITCODE=b.pcode WHERE b.pcode='%@' and PRODUCTTC_ORDER='%@' ORDER BY defualtS ASC",[pcodeDic objectForKey:@"PCODE"],[groupDic objectForKey:@"PRODUCTTC_ORDER"]]];
+            NSMutableArray *productArray=[BSDataProvider getDataFromSQLByCommand:[NSString stringWithFormat:@"SELECT a.*,b.*,c.PRICE AS FPRICE FROM food a left JOIN products_sub b on a.ITCODE=b.pcode left JOIN food c ON b.PCODE1=c.ITCODE WHERE b.pcode='%@' and PRODUCTTC_ORDER='%@' ORDER BY defualtS ASC",[pcodeDic objectForKey:@"PCODE"],[groupDic objectForKey:@"PRODUCTTC_ORDER"]]];
             /**
              *  将改组的最大最小数量放入数据中
              */
@@ -1446,10 +1580,9 @@ A:
     user = [NSString stringWithFormat:@"%@",[[Singleton sharedSingleton].userInfo objectForKey:@"user"]];
     NSMutableString *mutfood = [NSMutableString string];
     for (NSDictionary *info in array) {
-        [mutfood appendFormat:@"%@@%@@%@@%@@%@@%@@%@@%@@%@@%@@%@@%@@%@@%@@%@@%@",[info objectForKey:@"PKID"],[info objectForKey:@"Pcode"],@"",[info objectForKey:@"Tpcode"],@"",[info objectForKey:@"TPNUM"],[info objectForKey:@"pcount"],[info objectForKey:@"promonum"],[info objectForKey:@"fujiacode"],@"",[info objectForKey:@"price"],[info objectForKey:@"fujiaprice"],[info objectForKey:@"Weight"],[info objectForKey:@"Weightflg"],@"",[info objectForKey:@"ISTC"]];
+        [mutfood appendFormat:@"%@@%@@%@@%@@%@@%@@%@@%@@%@@%@@%@@%@@%@@%@@%@@%@@%@@%@",[info objectForKey:@"PKID"],[info objectForKey:@"Pcode"],@"",[info objectForKey:@"Tpcode"],@"",[info objectForKey:@"TPNUM"],[info objectForKey:@"pcount"],[info objectForKey:@"promonum"],[info objectForKey:@"fujiacode"],@"",[info objectForKey:@"price"],[info objectForKey:@"fujiaprice"],[info objectForKey:@"Weight"],[info objectForKey:@"Weightflg"],[info objectForKey:@"UnitCode"],[info objectForKey:@"ISTC"],[info objectForKey:@"Sublistid"],[info objectForKey:@"istemp"]];
         [mutfood appendString:@";"];
     }
-    NSLog(@"%@",mutfood);
     NSString *strParam = [NSString stringWithFormat:@"?&deviceId=%@&userCode=%@&orderId=%@&tableNum=%@&productList=%@",pdaid,user,[Singleton sharedSingleton].CheckNum,[Singleton sharedSingleton].Seat,mutfood];
     
     NSDictionary *dict = [self bsService:@"pGogo" arg:strParam];
@@ -1506,7 +1639,7 @@ A:
  *
  *  @param info 信息
  *
- *  @return 
+ *  @return
  */
 -(NSString *)consumerCouponCode:(NSDictionary *)info
 {
@@ -1521,8 +1654,525 @@ A:
         return [NSString stringWithFormat:@"%@",dict];
     }
 }
-
+-(NSArray *)productEstimate:(NSString *)classid
+{
+    //    NSString *result = @"0@pcode;菜品名称;实际销售量;预估销售量;百分比@pcode;菜品名称;实际销售量;预估销售量;百分比";
+    //    NSArray *array=[result componentsSeparatedByString:@"@"];
+    //    return array;
+    
+    NSString *strParam = [NSString stringWithFormat:@"?&deviceid=%@&usercode=%@&classid=%@&pagenum=",[self padID],[[Singleton sharedSingleton].userInfo objectForKey:@"user" ],classid];
+    NSDictionary *dict = [self bsService:@"productEstimate" arg:strParam];
+    if (dict) {
+        NSString *result = [[[dict objectForKey:@"ns:productEstimateResponse"] objectForKey:@"ns:return"] objectForKey:@"text"];
+        NSArray *array=[result componentsSeparatedByString:@"@"];
+        return array;
+    }else
+    {
+        return nil;
+    }
+}
+#pragma mark - 退菜
+-(NSDictionary *)cancleProducts:(NSDictionary *)info
+{
+    NSMutableDictionary *dic=[[NSMutableDictionary alloc] init];
+    [dic setObject:[Singleton sharedSingleton].CheckNum forKey:@"orderid"];
+    [dic setObject:[[info objectForKey:@"info"] objectForKey:@"user"] forKey:@"accreditcode"];
+    [dic setObject:[[info objectForKey:@"info"] objectForKey:@"INIT"] forKey:@"backreason"];
+    NSMutableArray *foodArray=[[NSMutableArray alloc] init];
+    for (NSDictionary *dict in [info objectForKey:@"dataArray"]) {
+        NSMutableDictionary *food=[[NSMutableDictionary alloc] init];
+        [food setObject:[dict objectForKey:@"Pcode"] forKey:@"pcode"];
+        [food setObject:[dict objectForKey:@"pcount"] forKey:@"canclecount"];
+        [food setObject:[dict objectForKey:@"PKID"] forKey:@"pkid"];
+        [food setObject:[dict objectForKey:@"weightflg"] forKey:@"weightflg"];
+        [food setObject:[dict objectForKey:@"ISTC"] forKey:@"istc"];
+        [food setObject:[dict objectForKey:@"UnitCode"] forKey:@"unitcode"];
+        [food setObject:[dict objectForKey:@"istemp"] forKey:@"istemp"];
+        [food setObject:[dict objectForKey:@"CLASS"] forKey:@"jiorjiao"];
+        [food setObject:[dict objectForKey:@"fujiacode"] forKey:@"fujiacode "];
+        [foodArray addObject:food];
+    }
+    [dic setObject:foodArray forKey:@"dishList"];
+    
+    NSString *strParam = [NSString stringWithFormat:@"?&deviceId=%@&userCode=%@&json=%@",[self padID],[[Singleton sharedSingleton].userInfo objectForKey:@"user" ],[dic JSONRepresentation]];
+    NSDictionary *returnDic = [self bsService:@"cancleProducts" arg:strParam];
+    if (returnDic) {
+        SBJsonParser * parser = [[SBJsonParser alloc]init];
+        NSMutableString *strResponser=[[[returnDic objectForKey:@"ns:cancleProductsResponse"] objectForKey:@"ns:return"] objectForKey:@"text"];
+        NSMutableDictionary *dicMessageInfo = [parser objectWithString:strResponser];
+        return dicMessageInfo;
+    }
+    return returnDic;
+}
+-(NSDictionary *)queryAllOrders
+{
+    //    NSString *result = @"0@pcode;菜品名称;实际销售量;预估销售量;百分比@pcode;菜品名称;实际销售量;预估销售量;百分比";
+    //    NSArray *array=[result componentsSeparatedByString:@"@"];
+    //    return array;
+    
+    NSString *strParam = [NSString stringWithFormat:@"?&deviceId=%@&userCode=%@",[self padID],[[Singleton sharedSingleton].userInfo objectForKey:@"user" ]];
+    NSDictionary *dict = [self bsService:@"queryAllOrders" arg:strParam];
+    if (dict) {
+        NSString *result = [[[dict objectForKey:@"ns:queryAllOrdersResponse"] objectForKey:@"ns:return"] objectForKey:@"text"];
+        NSArray *array=[result componentsSeparatedByString:@"@"];
+        if ([[array objectAtIndex:0] intValue]==0) {
+            NSMutableArray *array1=[[array objectAtIndex:1] componentsSeparatedByString:@"&"];
+            if ([array1 count]>1) {
+                [array1 removeLastObject];
+            }
+            
+            NSMutableArray *returnArray=[[NSMutableArray alloc] init];
+            for (NSString *str in array1) {
+                NSArray *array2=[str componentsSeparatedByString:@";"];
+                NSMutableDictionary *dict1=[[NSMutableDictionary alloc] init];
+                [dict1 setObject:[array2 objectAtIndex:0] forKey:@"orderid"];
+                [dict1 setObject:[array2 objectAtIndex:1] forKey:@"Tablename"];
+                [dict1 setObject:[array2 objectAtIndex:2] forKey:@"Orderstate"];
+                [returnArray addObject:dict1];
+            }
+            return [NSDictionary dictionaryWithObjectsAndKeys:@"0",@"tag",returnArray,@"message", nil];
+        }else
+        {
+            return [NSDictionary dictionaryWithObjectsAndKeys:@"1",@"tag",[array objectAtIndex:1],@"message", nil];
+        }
+    }else
+    {
+        return nil;
+    }
+}
 - (BOOL)activated{
     return [self checkActivated];
+}
+#pragma mark - 在线会员
+//string onelineQueryCardByMobTel(string deviceId,QString userCode,QString telNum );
+/**
+ *  @author ZhangPo, 15-05-07 14:05:03
+ *
+ *  @brief  根据手机号查询卡号
+ *
+ *  @param telNum 手机号
+ *
+ *  @return 手机号
+ *
+ *  @since
+ */
+-(NSDictionary *)onelineQueryCardByMobTel:(NSString *)telNum
+{
+    NSString *strParam = [NSString stringWithFormat:@"?&deviceId=%@&userCode=%@&telNum=%@&orderid=%@",[self padID],[[Singleton sharedSingleton].userInfo objectForKey:@"user"],telNum,[Singleton sharedSingleton].CheckNum];
+    NSDictionary *dict = [self bsService:@"onelineQueryCardByMobTel" arg:strParam];
+    if (dict) {
+         NSString *jsonStr=[[[dict objectForKey:@"ns:onelineQueryCardByMobTelResponse"] objectForKey:@"ns:return"] objectForKey:@"text"];
+        SBJsonParser * parser = [[SBJsonParser alloc]init];
+        NSMutableDictionary *dicMessageInfo = [parser objectWithString:jsonStr];
+        return dicMessageInfo;
+    }
+   
+    return dict;
+}
+/**
+ *  @author ZhangPo, 15-05-07 14:05:10
+ *
+ *  @brief  根据卡号查询卡信息
+ *
+ *  @param cardNum 卡号
+ *
+ *  @return 卡信息
+ *
+ *  @since
+ */
+-(NSDictionary *)onelineQueryCardByCardNo:(NSString *)cardNum
+{
+    NSString *strParam = [NSString stringWithFormat:@"?&deviceId=%@&userCode=%@&cardNum=%@&orderid=%@",[self padID],[[Singleton sharedSingleton].userInfo objectForKey:@"user"],cardNum,[Singleton sharedSingleton].CheckNum];
+    NSDictionary *dict = [self bsService:@"onelineQueryCardByCardNo" arg:strParam];
+    if (dict) {
+        NSString *jsonStr=[[[dict objectForKey:@"ns:onelineQueryCardByCardNoResponse"] objectForKey:@"ns:return"] objectForKey:@"text"];
+        SBJsonParser * parser = [[SBJsonParser alloc]init];
+        NSMutableDictionary *dicMessageInfo = [parser objectWithString:jsonStr];
+        return dicMessageInfo;
+    }
+    
+    return dict;
+}
+#pragma mark - 活动使用
+-(NSDictionary *)activityUserCounp:(NSDictionary *)info{
+    NSDictionary *dic=[NSDictionary dictionaryWithObjectsAndKeys:@"0",@"jmtyp",@"0",@"ryzktyp", nil];
+    NSString *strParam = [NSString stringWithFormat:@"?&deviceId=%@&userCode=%@&tableNum=%@&orderId=%@&counpId=%@&counpCnt=%@&counpMoney=%@&json=%@",[self padID],[[Singleton sharedSingleton].userInfo objectForKey:@"user"],[Singleton sharedSingleton].Seat,[Singleton sharedSingleton].CheckNum,[info objectForKey:@"CODE"],@"1",[info objectForKey:@"OPERATEVALUE"],[dic JSONRepresentation]];
+    NSDictionary *dict = [self bsService:@"userCounp" arg:strParam];
+    if (dict) {
+        NSString *returnStr=[[[dict objectForKey:@"ns:userCounpResponse"] objectForKey:@"ns:return"] objectForKey:@"text"];
+        NSArray *array=[returnStr componentsSeparatedByString:@"@"];
+        if ([[array objectAtIndex:0] intValue]==0) {
+            return [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:YES],@"Result",@"成功",@"Message", nil];
+        }else
+        {
+            return [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:NO],@"Result",[array objectAtIndex:1],@"Message", nil];
+        }
+    }
+    return [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:NO],@"Result",@"查询失败",@"Message", nil];
+}
+#pragma mark - 预结算账单查询
+-(NSDictionary *)paymentViewQueryProduct
+{
+    NSString *strParam = [NSString stringWithFormat:@"?&deviceId=%@&userCode=%@&tableNum=%@&orderId=%@&comOrDetach=%@",[self padID],[[Singleton sharedSingleton].userInfo objectForKey:@"user"],[Singleton sharedSingleton].Seat,[Singleton sharedSingleton].CheckNum,@"1"];
+    NSDictionary *dict = [self bsService:@"queryProduct" arg:strParam];
+    if (dict) {
+        float foodPrice,paymentPrice;
+        NSMutableDictionary *returnDict=[[NSMutableDictionary alloc] init];
+        NSString *returnStr=[[[dict objectForKey:@"ns:queryProductResponse"] objectForKey:@"ns:return"] objectForKey:@"text"];
+        NSArray *array=[returnStr componentsSeparatedByString:@"#"];
+        //菜品解析
+        if ([array count]==1) {
+            NSArray *foodAry=[[array objectAtIndex:0] componentsSeparatedByString:@"@"];
+            if ([[foodAry objectAtIndex:0] intValue]!=0) {
+                return [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:NO],@"Result",@"查询失败",@"Message", nil];
+            }
+        }
+        NSMutableArray *foodArrayC=[[array objectAtIndex:0] componentsSeparatedByString:@";"];
+        [foodArrayC removeLastObject];
+        NSMutableArray *foodArray=[[NSMutableArray alloc] init];
+        for (NSString *foodStr in foodArrayC) {
+            NSArray *foodAry=[foodStr componentsSeparatedByString:@"@"];
+            if ([[foodAry objectAtIndex:0] intValue]!=0) {
+                return [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:NO],@"Result",@"查询失败",@"Message", nil];
+            }
+            NSMutableDictionary *foodDic=[[NSMutableDictionary alloc] init];
+            [foodDic setObject:[foodAry objectAtIndex:2] forKey:@"PKID"];
+            [foodDic setObject:[foodAry objectAtIndex:3] forKey:@"pcode"];
+            [foodDic setObject:[foodAry objectAtIndex:4] forKey:@"PCname"];
+            [foodDic setObject:[foodAry objectAtIndex:5] forKey:@"tpcode"];
+            [foodDic setObject:[foodAry objectAtIndex:6] forKey:@"TPNAME"];
+            [foodDic setObject:[foodAry objectAtIndex:7] forKey:@"TPNUM"];
+            [foodDic setObject:[foodAry objectAtIndex:8] forKey:@"pcount"];
+            [foodDic setObject:[foodAry objectAtIndex:9] forKey:@"promonum"];
+            [foodDic setObject:[foodAry objectAtIndex:10] forKey:@"fujiacode"];
+            [foodDic setObject:[foodAry objectAtIndex:11] forKey:@"fujianame"];
+            [foodDic setObject:[foodAry objectAtIndex:12] forKey:@"price"];
+            [foodDic setObject:[foodAry objectAtIndex:13] forKey:@"fujiaprice"];
+            [foodDic setObject:[foodAry objectAtIndex:14] forKey:@"weight"];
+            [foodDic setObject:[foodAry objectAtIndex:15] forKey:@"weightflg"];
+            [foodDic setObject:[foodAry objectAtIndex:16] forKey:@"unit"];
+            [foodDic setObject:[foodAry objectAtIndex:17] forKey:@"ISTC"];
+            [foodDic setObject:[NSString stringWithFormat:@"%.2f",[[foodAry objectAtIndex:12] floatValue]+[[foodAry objectAtIndex:13] floatValue]] forKey:@"price"];
+            foodPrice+=[[foodAry objectAtIndex:12] floatValue]+[[foodAry objectAtIndex:13] floatValue];
+            [foodArray addObject:foodDic];
+        }
+        [returnDict setObject:foodArray forKey:@"foodList"];
+        NSMutableArray *paymentArrayC=[NSMutableArray arrayWithArray:[[array objectAtIndex:1] componentsSeparatedByString:@";"]];
+        [paymentArrayC removeLastObject];
+        double calculateZero=0.0000;
+        NSMutableArray *paymentArray=[[NSMutableArray alloc] init];
+        for (NSString *paymentStr in paymentArrayC) {
+            NSArray *paymentAry=[paymentStr componentsSeparatedByString:@"@"];
+            if ([[paymentAry objectAtIndex:0] intValue]!=0) {
+                return [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:NO],@"Result",@"查询失败",@"Message", nil];
+            }
+            NSMutableDictionary *paymentDic=[[NSMutableDictionary alloc] init];
+            [paymentDic setObject:[paymentAry objectAtIndex:2] forKey:@"paymentName"];
+            [paymentDic setObject:[paymentAry objectAtIndex:3] forKey:@"paymentPrice"];
+            [paymentDic setObject:[paymentAry objectAtIndex:4] forKey:@"paymentCode"];
+            [paymentDic setObject:[paymentAry objectAtIndex:5] forKey:@"paymentShowPrice"];
+            if ([[paymentAry objectAtIndex:6] intValue]==1) {
+                calculateZero+=[[paymentAry objectAtIndex:6] doubleValue];
+            }
+            paymentPrice+=[[paymentAry objectAtIndex:3] floatValue];
+            [paymentArray addObject:paymentDic];
+        }
+        double ClearZeroMoney=[self ClearZeroFunSumYmoney:foodPrice-calculateZero];
+//        double 
+        NSMutableDictionary *paymentDic=[[NSMutableDictionary alloc] init];
+        [paymentDic setObject:@"账单金额" forKey:@"paymentName"];
+        [paymentDic setObject:[NSString stringWithFormat:@"%.2f",foodPrice] forKey:@"paymentShowPrice"];
+        [paymentArray insertObject:paymentDic atIndex:0];
+        [returnDict setObject:paymentArray forKey:@"paymentList"];
+        NSLog(@"%@",returnDict);
+        NSArray *ary2=[[array objectAtIndex:2] componentsSeparatedByString:@"@"];
+        if ([[ary2 objectAtIndex:0] intValue]==0) {
+            [Singleton sharedSingleton].man=[ary2 objectAtIndex:1];
+            [Singleton sharedSingleton].woman=[ary2 objectAtIndex:2];
+        }
+        NSArray *ary3=[[array objectAtIndex:3] componentsSeparatedByString:@";"];
+        NSMutableString *str=[NSMutableString string];
+        for (NSString *result2 in ary3) {
+            NSArray *ary3=[result2 componentsSeparatedByString:@"@"];
+            if ([ary3 count]==2) {
+                [str appendFormat:@"%@ ",[ary3 objectAtIndex:1]];
+            }
+        }
+        [returnDict setObject:str forKey:@"whole"];
+        [returnDict setObject:[NSString stringWithFormat:@"%.2f",ClearZeroMoney] forKey:@"CLEARZERO"];
+        [returnDict setObject:[NSString stringWithFormat:@"%.2f",foodPrice] forKey:@"foodPrice"];
+        [returnDict setObject:[NSString stringWithFormat:@"%.2f",foodPrice-paymentPrice-ClearZeroMoney] forKey:@"paymentPrice"];
+        return [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:YES],@"Result",returnDict,@"Message", nil];
+    }
+    return [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:NO],@"Result",@"查询失败",@"Message", nil];
+}
+#pragma mark - 会员支付
+-(NSDictionary *)onelineCardOutAmt:(NSDictionary *)info{
+    NSString *strParam = [NSString stringWithFormat:@"?&deviceId=%@&userCode=%@&json=%@",[self padID],[[Singleton sharedSingleton].userInfo objectForKey:@"user"],[info JSONRepresentation]];
+    NSDictionary *dict = [self bsService:@"onelineCardOutAmt" arg:strParam];
+    if (dict) {
+        NSString *returnStr=[[[dict objectForKey:@"ns:onelineCardOutAmtResponse"] objectForKey:@"ns:return"] objectForKey:@"text"];
+        SBJsonParser * parser = [[SBJsonParser alloc]init];
+        NSMutableDictionary *dicMessageInfo = [parser objectWithString:returnStr];
+        return dicMessageInfo;
+    }
+    return [NSDictionary dictionaryWithObjectsAndKeys:@"-1",@"return",@"查询失败",@"error", nil];
+}
+#pragma mark - 根据券查询活动
+-(NSDictionary *)couponForTicket:(NSDictionary *)ticket
+{
+    return [[BSDataProvider getDataFromSQLByCommand:[NSString stringWithFormat:@"select * from coupon_main where VVOUCHERCODE ='%@'",[ticket objectForKey:@"couponCode"]]] lastObject];
+}
+#pragma mark - 现金银行卡支付
+-(NSDictionary *)userPayment:(NSDictionary *)info{
+    NSString *strParam = [NSString stringWithFormat:@"?&deviceId=%@&userCode=%@&tableNum=%@&orderId=%@&paymentId=%@&paymentCnt=%@&mpaymentMoney=%@&payFinish=%@&integralOverall=%@&cardNumber=%@",[self padID],[[Singleton sharedSingleton].userInfo objectForKey:@"user" ],[Singleton sharedSingleton].Seat,[Singleton sharedSingleton].CheckNum,[info objectForKey:@"paymentID"],[info objectForKey:@"paymentCnt"],[info objectForKey:@"paymentMoney"],[info objectForKey:@"payFinish"],[info objectForKey:@"integralOverall"],[info objectForKey:@"cardNumber"]];
+    NSDictionary *dict = [self bsService:@"userPayment" arg:strParam];
+    if (dict) {
+        NSString *result = [[[dict objectForKey:@"ns:userPaymentResponse"] objectForKey:@"ns:return"] objectForKey:@"text"];
+        NSArray *array=[result componentsSeparatedByString:@"@"];
+        if ([[array objectAtIndex:0] intValue]==0) {
+            return [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:YES],@"Result",@"支付完成",@"Message", nil];
+        }else
+        {
+            return [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:NO],@"Result",@"支付失败",@"Message", nil];
+        }
+    }else
+    {
+        return [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:NO],@"Result",@"支付失败",@"Message", nil];
+    }
+}
+#pragma mark - 活动查询
+-(NSArray *)selectCoupon
+{
+    NSArray *coupon_kindArray=[BSDataProvider getDataFromSQLByCommand:@"select * from coupon_kind"];
+    for (NSDictionary *dict in coupon_kindArray) {
+        NSArray *coupon_mainArray=[BSDataProvider getDataFromSQLByCommand:[NSString stringWithFormat:@"select * from coupon_main WHERE KINDID='%@' and ISSHOW='1'",[dict objectForKey:@"KINDID"]]];
+        [dict setValue:coupon_mainArray forKey:@"coupon_main"];
+    }
+    return coupon_kindArray;
+}
+#pragma mark - 取消支付接口
+-(NSDictionary *)cancleUserPayment:(NSString *)passWord
+{
+    NSDictionary *dic=[[NSDictionary alloc] initWithObjectsAndKeys:passWord,@"cardPassword", nil];
+    NSString *strParam = [NSString stringWithFormat:@"?&deviceId=%@&userCode=%@&tableNum=%@&orderId=%@&json=%@",[self padID],[[Singleton sharedSingleton].userInfo objectForKey:@"user" ],[Singleton sharedSingleton].Seat,[Singleton sharedSingleton].CheckNum,[dic JSONRepresentation]];
+    NSDictionary *dict = [self bsService:@"cancleUserPayment" arg:strParam];
+    if (dict) {
+        NSString *result = [[[dict objectForKey:@"ns:cancleUserPaymentResponse"] objectForKey:@"ns:return"] objectForKey:@"text"];
+        NSArray *array=[result componentsSeparatedByString:@"@"];
+        if ([[array objectAtIndex:0] intValue]==0) {
+            return [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:YES],@"Result",[array objectAtIndex:1],@"Message", nil];
+        }else
+        {
+            return [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:NO],@"Result",[array objectAtIndex:1],@"Message", nil];
+        }
+    }else
+    {
+        return [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:NO],@"Result",@"取消支付失败",@"Message", nil];
+    }
+}
+#pragma mark - 取消优惠
+-(NSDictionary *)cancleUserCounp
+{
+    NSString *strParam = [NSString stringWithFormat:@"?&deviceId=%@&userCode=%@&tableNum=%@&orderId=%@",[self padID],[[Singleton sharedSingleton].userInfo objectForKey:@"user" ],[Singleton sharedSingleton].Seat,[Singleton sharedSingleton].CheckNum];
+    NSDictionary *dict = [self bsService:@"cancleUserCounp" arg:strParam];
+    if (dict) {
+        NSString *result = [[[dict objectForKey:@"ns:cancleUserCounpResponse"] objectForKey:@"ns:return"] objectForKey:@"text"];
+        NSArray *array=[result componentsSeparatedByString:@"@"];
+        if ([[array objectAtIndex:0] intValue]==0) {
+            return [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:YES],@"Result",[array objectAtIndex:2],@"Message", nil];
+        }else
+        {
+            return [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:NO],@"Result",[array objectAtIndex:1],@"Message", nil];
+        }
+    }else
+    {
+        return [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:NO],@"Result",@"取消优惠失败",@"Message", nil];
+    }
+}
+//@"SELECT *FROM settlementoperate WHERE OPERATEGROUPID='5'"
+#pragma mark - 查询银行卡
+-(NSArray *)selectBankArray
+{
+    return [BSDataProvider getDataFromSQLByCommand:@"SELECT *FROM settlementoperate WHERE OPERATEGROUPID='31'"];
+}
+#pragma mark - 查询现金
+-(NSArray *)selectCashArray
+{
+    return [BSDataProvider getDataFromSQLByCommand:@"SELECT *FROM settlementoperate WHERE OPERATEGROUPID='5'"];
+}
+#pragma mark - 查询网络支付
+-(NSArray *)selectOnlinePaymentArray
+{
+    return [BSDataProvider getDataFromSQLByCommand:@"SELECT *FROM settlementoperate WHERE OPERATEGROUPID in('50','48')"];
+}
+#pragma mark - 查询是否存在会员消费
+-(NSDictionary *)memberConsumptionRecord
+{
+    return [self querySqlInterface:[NSString stringWithFormat:@"select count(*) from cardordrs where PCONACCT = '%@' and pserial not in(select pserialor from changeamt where pflag = '2') ORDER BY miscode DESC",[Singleton sharedSingleton].CheckNum]];
+}
+#pragma mark - 查询需要支付列表
+-(NSDictionary *)shouldCheckData
+{
+    return [self querySqlInterface:@"SELECT a.TABLENUM,a.ORDERID,b.TBLNAME,a.PEOLENUMMAN,a.PEOLENUMWOMEN FROM handevtableorder_relation a left JOIN storetables_mis b ON a.TABLENUM=b.TABLENUM WHERE TABLESTATE='0' and MOBILEBILLOK='1'"];
+//    return [self querySqlInterface:@"SELECT a.TABLENUM,a.ORDERID,b.TBLNAME,a.PEOLENUMMAN,a.PEOLENUMWOMEN FROM handevtableorder_relation a left JOIN storetables_mis b ON a.TABLENUM=b.TABLENUM WHERE TABLESTATE='0'"];
+}
+-(NSDictionary *)updateTableStata
+{
+    return [self querySqlInterface:[NSString stringWithFormat:@"UPDATE handevtableorder_relation SET TABLESTATE ='0' WHERE ORDERID='%@'",[Singleton sharedSingleton].CheckNum]];
+}
+
+#pragma mark - 扫描支付
+-(NSDictionary *)scanCode:(NSDictionary *)alipayDic
+{
+    NSString *type=nil;
+    if ([[alipayDic objectForKey:@"OPERATEGROUPID"] intValue]==50) {
+        type=@"1";
+    }else
+    {
+        type=@"2";
+    }
+    NSDictionary *dic=[[NSDictionary alloc] initWithObjectsAndKeys:[alipayDic objectForKey:@"OPERATE"],@"operate",[alipayDic objectForKey:@"auth_code"],@"auth_code",@"0.01",@"total_fee",[Singleton sharedSingleton].CheckNum,@"orderid",@"1",@"finished",type,@"type",nil];
+    NSString *strParam = [NSString stringWithFormat:@"?&deviceId=%@&userCode=%@&json=%@",[self padID],[[Singleton sharedSingleton].userInfo objectForKey:@"user"],[dic JSONRepresentation]];
+    NSDictionary *dict = [self bsService:@"scanCode" arg:strParam];
+    if (dict) {
+        NSString *returnStr=[[[dict objectForKey:@"ns:scanCodeResponse"] objectForKey:@"ns:return"] objectForKey:@"text"];
+        SBJsonParser * parser = [[SBJsonParser alloc]init];
+        NSMutableDictionary *dicMessageInfo = [parser objectWithString:returnStr];
+        return dicMessageInfo;
+    }
+    return [NSDictionary dictionaryWithObjectsAndKeys:@"-1",@"return",@"支付失败",@"error", nil];
+}
+#pragma mark - 微信上传
+-(NSDictionary *)pushWeChatCheckOut:(NSDictionary *)info
+{
+    NSString *strParam = [NSString stringWithFormat:@"?&deviceId=%@&userCode=%@&json=%@",[self padID],[[Singleton sharedSingleton].userInfo objectForKey:@"user"],[info JSONRepresentation]];
+    NSDictionary *dict = [self bsService:@"pushWeChatCheckOut" arg:strParam];
+    if (dict) {
+        NSString *returnStr=[[[dict objectForKey:@"ns:pushWeChatCheckOutResponse"] objectForKey:@"ns:return"] objectForKey:@"text"];
+        SBJsonParser * parser = [[SBJsonParser alloc]init];
+        NSMutableDictionary *dicMessageInfo = [parser objectWithString:returnStr];
+        return dicMessageInfo;
+    }
+    return [NSDictionary dictionaryWithObjectsAndKeys:@"-1",@"return",@"上传失败",@"error", nil];
+}
+#pragma mark - 更新版本号
+-(NSDictionary *)updateDataVersion:(NSString *)dataVersion
+{
+    NSString *strParam = [NSString stringWithFormat:@"?&deviceId=%@&userCode=%@&dataVersion=%@",[self padID],[[Singleton sharedSingleton].userInfo objectForKey:@"user"],dataVersion];
+    NSDictionary *dict = [self bsService:@"updateDataVersion" arg:strParam];
+    if (dict) {
+        NSString *returnStr=[[[dict objectForKey:@"ns:updateDataVersionResponse"] objectForKey:@"ns:return"] objectForKey:@"text"];
+        NSArray *array=[returnStr componentsSeparatedByString:@"@"];
+        if ([[array objectAtIndex:0] intValue]==0) {
+            return [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:YES],@"Result",[array objectAtIndex:1],@"Message", nil];
+        }else
+        {
+            return [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:NO],@"Result",[array objectAtIndex:1],@"Message", nil];
+        }
+    }
+    return [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:NO],@"Result",@"更新失败",@"Message", nil];
+//    return [NSDictionary dictionaryWithObjectsAndKeys:@"-1",@"return",@"上传失败",@"error", nil];
+}
+#pragma mark - 通用查询 sql 语句接口
+-(NSDictionary *)querySqlInterface:(NSString *)sql
+{
+    NSDate *datenow = [NSDate date];//现在时间,你可以输出来看下是什么格式
+    NSTimeZone *zone = [NSTimeZone timeZoneWithName:@"Asia/Beijing"];
+    NSInteger interval = [zone secondsFromGMTForDate:datenow];
+    NSDate *localeDate = [datenow  dateByAddingTimeInterval: interval];
+    NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
+    //设定时间格式,这里可以设置成自己需要的格式
+    [dateFormatter setDateFormat:@"yyyy"];
+    //用[NSDate date]可以获取系统当前时间
+    int  yy = [[dateFormatter stringFromDate:localeDate] intValue];
+    [dateFormatter setDateFormat:@"MM"];
+    //用[NSDate date]可以获取系统当前时间
+    int MM = [[dateFormatter stringFromDate:localeDate] intValue];
+    [dateFormatter setDateFormat:@"dd"];
+    //用[NSDate date]可以获取系统当前时间
+    int dd = [[dateFormatter stringFromDate:localeDate] intValue];
+    NSString *str=[NSString stringWithFormat:@"HHT%d%.2d%.2d",yy+1,MM-1,dd+1];
+    NSLog(@"%@",str);
+    NSString *strParam = [NSString stringWithFormat:@"?&deviceId=%@&userCode=%@&strsql=%@&parityBit=%@",[self padID],[[Singleton sharedSingleton].userInfo objectForKey:@"user"],sql,[self md5:str]];
+    NSDictionary *dict = [self bsService:@"querySqlInterface" arg:strParam];
+    if (dict) {
+        NSString *returnStr=[[[dict objectForKey:@"ns:querySqlInterfaceResponse"] objectForKey:@"ns:return"] objectForKey:@"text"];
+        SBJsonParser * parser = [[SBJsonParser alloc]init];
+        NSMutableDictionary *dicMessageInfo = [parser objectWithString:returnStr];
+        return dicMessageInfo;
+    }
+    return [NSDictionary dictionaryWithObjectsAndKeys:@"-1",@"return",@"查询失败",@"error", nil];
+}
+- (NSString *)md5:(NSString *)str
+{
+    const char *cStr = [str UTF8String];
+    unsigned char result[16];
+    CC_MD5(cStr, strlen(cStr), result); // This is the md5 call
+    return [NSString stringWithFormat:
+            @"%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
+            result[0], result[1], result[2], result[3],
+            result[4], result[5], result[6], result[7],
+            result[8], result[9], result[10], result[11],
+            result[12], result[13], result[14], result[15]
+            ]; 
+}
+/****************
+ 功能：抹零金额计算
+ 修改时间：2014-04-16
+ 参数1 抹零方式        clearMoneyYN  1 向下 2 向上 3 四舍五入
+ 要抹零的金额          sumYmoney
+ 抹零金额              ClearZeroMoney
+ 抹零到那一位          dClearBit 100 抹零到百位 10 抹零到十位 1 抹零到个位 0.1抹零到第一位小数 0.01抹零到两位小数
+ 抹零金额保留位小数位   iDoubleBitn
+ ***************/
+-(double)ClearZeroFunSumYmoney:(double)sumYmoney
+{
+    NSDictionary *dict=[[BSDataProvider getDataFromSQLByCommand:@"select * from posdb"] lastObject];
+    double ClearZeroMoney =0.0000;
+    double desMoney = sumYmoney;//抹零前合计金额
+    if([[dict objectForKey:@"CLEARMONEYYN"] intValue]==1)
+    {//向下抹零
+        if(desMoney>0.0001 || desMoney>-0.0001){
+            desMoney = desMoney+0.0000001;
+        }
+        else
+        {
+            desMoney = desMoney-0.0000001;
+        }
+        ClearZeroMoney =fmod(desMoney,[[dict objectForKey:@"CLEARMONEYBIT"] floatValue]);//取余数 要抹掉部分
+    }
+    else if([[dict objectForKey:@"CLEARMONEYYN"] intValue]==2)
+    {//向上抹零
+        ClearZeroMoney =fmod(desMoney,[[dict objectForKey:@"CLEARMONEYBIT"] floatValue]);
+        if(!(ClearZeroMoney>-0.001 && ClearZeroMoney<0.001))
+        {
+            ClearZeroMoney = [[dict objectForKey:@"CLEARMONEYBIT"] floatValue]-ClearZeroMoney;
+        }
+        if(!(ClearZeroMoney>-0.001 && ClearZeroMoney<0.001))
+        {
+            ClearZeroMoney=-ClearZeroMoney;
+        }
+    }
+    else
+    {//四舍五入
+        ClearZeroMoney =fmod(desMoney,[[dict objectForKey:@"CLEARMONEYBIT"] floatValue]);
+        ClearZeroMoney=[[NSString stringWithFormat:@"%.6f",ClearZeroMoney] doubleValue];
+        double ipart = [[dict objectForKey:@"CLEARMONEYBIT"] floatValue]/2;
+        double diff = ClearZeroMoney-ipart;
+        if(!(ClearZeroMoney>-0.0001 && ClearZeroMoney<0.0001))
+        {
+            if(ClearZeroMoney<=([[dict objectForKey:@"CLEARMONEYBIT"] floatValue]-ClearZeroMoney) && !(diff<0.0001 && diff>-0.0001))
+            {//舍
+                sumYmoney = desMoney-ClearZeroMoney;
+            }
+            else
+            {//入
+                sumYmoney = desMoney+([[dict objectForKey:@"CLEARMONEYBIT"] floatValue]-ClearZeroMoney);
+                ClearZeroMoney =ClearZeroMoney-[[dict objectForKey:@"CLEARMONEYBIT"] floatValue];
+            }
+        }
+    }
+    return ClearZeroMoney;
 }
 @end

@@ -34,6 +34,7 @@
     NSMutableArray *_searchByName;
     NSArray *_searchArray;
     UILabel *lblTitle;
+    BSPrintQueryView        *printQuery;
 }
 
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
@@ -85,17 +86,18 @@
 -(void)viewWillAppear:(BOOL)animated
 {
     [super viewWillAppear:animated];
-    segmen=[[AKMySegmentAndView alloc] init];
+    segmen=[AKMySegmentAndView shared];
     segmen.frame=CGRectMake(0, 0, 768, 114-60);
     segmen.delegate=self;
-    [[segmen.subviews objectAtIndex:1]removeFromSuperview];
+    [segmen shoildCheckShow:YES];
+    [segmen segmentShow:NO];
     [self.view addSubview:segmen];
 }
 -(void)viewLoad1
 {
     [self updata];
     [self searchBarInit];
-    
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(logout) name:@"LOGOUT" object:nil];
     //    [Singleton sharedSingleton].Seat=@"33";
     //    [Singleton sharedSingleton].CheckNum=@"P000005";
     _selectArray=[[NSMutableArray alloc] init];
@@ -156,10 +158,10 @@
     }
     [self.view addSubview:view];
     //    tvOrder.tableHeaderView=view;
-    NSArray *array2=[[NSArray alloc] initWithObjects:[localization localizedString:@"Table"],[localization localizedString:@"Gogo"],[localization localizedString:@"Elide"],[localization localizedString:@"Add Food"],[localization localizedString:@"Print"],[localization localizedString:@"Settlement"],[localization localizedString:@"Back"], nil];
-    for (int i=0; i<7; i++) {
+    NSArray *array2=[[NSArray alloc] initWithObjects:[localization localizedString:@"Table"],[localization localizedString:@"Chuck"],[localization localizedString:@"Gogo"],[localization localizedString:@"Elide"],[localization localizedString:@"Add Food"],[localization localizedString:@"Print"],[localization localizedString:@"Settlement"],[localization localizedString:@"Back"], nil];
+    for (int i=0; i<8; i++) {
         UIButton *btn=[UIButton buttonWithType:UIButtonTypeCustom];
-        btn.frame=CGRectMake((768-20)/7*i, 1024-70, 130, 50);
+        btn.frame=CGRectMake((768-20)/8*i, 1024-70, 130, 50);
         UILabel *lb=[[UILabel alloc] initWithFrame:CGRectMake(10,20, 120, 30)];
         lb.text=[array2 objectAtIndex:i];
         lb.font=[UIFont fontWithName:@"ArialRoundedMTBold"size:20];
@@ -169,27 +171,43 @@
         [btn setBackgroundImage:[[CVLocalizationSetting sharedInstance]imgWithContentsOfFile:@"cv_rotation_normal_button.png"] forState:UIControlStateNormal];
         [btn setBackgroundImage:[[CVLocalizationSetting sharedInstance]imgWithContentsOfFile:@"cv_rotation_highlight_button.png"] forState:UIControlStateHighlighted];
         [self.view addSubview:btn];
+//
         if (i==0) {
             [btn addTarget:self action:@selector(tableClicked) forControlEvents:UIControlEventTouchUpInside];
-            //        }else if (i==1){
-            //            [btn addTarget:self action:@selector(chuckOrder) forControlEvents:UIControlEventTouchUpInside];
-        }else if(i==1){
+        }else if (i==1){
+            [btn addTarget:self action:@selector(chuckOrder) forControlEvents:UIControlEventTouchUpInside];
+        }
+        else if(i==2){
             [btn addTarget:self action:@selector(gogoOrder) forControlEvents:UIControlEventTouchUpInside];
-        }else if (i==2){
+        }else if (i==3){
             [btn addTarget:self action:@selector(over) forControlEvents:UIControlEventTouchUpInside];
         }
-        else if(i==3){
+        else if(i==4){
             [btn addTarget:self action:@selector(addDush) forControlEvents:UIControlEventTouchUpInside];
-        }else if (i==4){
-            [btn addTarget:self action:@selector(printQuery) forControlEvents:UIControlEventTouchUpInside];
         }else if (i==5){
-            [btn addTarget:self action:@selector(QueryView) forControlEvents:UIControlEventTouchUpInside];
+            [btn addTarget:self action:@selector(printQuery) forControlEvents:UIControlEventTouchUpInside];
         }else if (i==6){
+            [btn addTarget:self action:@selector(QueryView) forControlEvents:UIControlEventTouchUpInside];
+        }else if (i==7){
             [btn addTarget:self action:@selector(back) forControlEvents:UIControlEventTouchUpInside];
         }
     }
     [self updateTitle];
     _dish=[[NSMutableArray alloc] init];
+}
+#pragma mark - 要结账单
+-(void)shouldCheckViewClick:(NSDictionary *)checkDic
+{
+    //    TABLENUM,a.ORDERID,b.TBLNAME,a.PEOLENUMMAN,a.PEOLENUMWOMEN
+    [Singleton sharedSingleton].man=[checkDic objectForKey:@"PEOLENUMMAN"];
+    [Singleton sharedSingleton].woman=[checkDic objectForKey:@"PEOLENUMWOMEN"];
+    [Singleton sharedSingleton].CheckNum=[checkDic objectForKey:@"ORDERID"];
+    [Singleton sharedSingleton].Seat=[checkDic objectForKey:@"TABLENUM"];
+    [Singleton sharedSingleton].tableName=[checkDic objectForKey:@"TBLNAME"];
+    bs_dispatch_sync_on_main_thread(^{
+        AKQueryViewController *query=[[AKQueryViewController alloc] init];
+        [self.navigationController pushViewController:query animated:YES];
+    });
 }
 -(void)updata
 {
@@ -526,84 +544,6 @@ A:
     {
         [self selectcount];
     }
-    //    {
-    //        NSDictionary *dict=[_selectArray objectAtIndex:x];
-    //        if ([[dict objectForKey:@"pcount"] intValue]>1) {
-    //            [dict setValue:[dict objectForKey:@"pcount"] forKey:@"count"];
-    //            UIAlertView *alert=[[UIAlertView alloc] initWithTitle:@"划菜数量" message:[dict objectForKey:@"PCname"] delegate:self cancelButtonTitle:@"取消" otherButtonTitles:@"确认", nil];
-    //            alert.alertViewStyle=UIAlertViewStyleLoginAndPasswordInput;
-    //            UITextField *tf1 = [alert textFieldAtIndex:0];
-    //            tf1.keyboardType=UIKeyboardTypeNumberPad;
-    //            tf1.clearButtonMode=UITextFieldViewModeAlways;
-    //            //        tf1.text=[dict objectForKey:@"pcount"];
-    //            UITextField *tf2 = [alert textFieldAtIndex:1];
-    //            [tf2 setSecureTextEntry:NO];
-    //            tf2.keyboardType=UIKeyboardTypeNumberPad;
-    //
-    //            tf2.clearButtonMode=UITextFieldViewModeAlways;
-    //            if ([[NSUserDefaults standardUserDefaults] boolForKey:@"userSql"])
-    //            {
-    //                tf1.placeholder=[NSString stringWithFormat:@"划菜:%@",[dict objectForKey:@"Over"]];
-    //                tf2.placeholder=[NSString stringWithFormat:@"反划菜:%d",[[dict objectForKey:@"pcount"] intValue]-[[dict objectForKey:@"Over"] intValue]];
-    //            }
-    //            else
-    //            {
-    //                tf1.placeholder=[NSString stringWithFormat:@"划菜:%d",[[dict objectForKey:@"pcount"] intValue]-[[dict objectForKey:@"Over"] intValue]];
-    //                tf2.placeholder=[NSString stringWithFormat:@"反划菜:%@",[dict objectForKey:@"Over"]];
-    //            }
-    //            tf2.delegate=self;
-    //            tf1.delegate=self;
-    //            //            alert.alertViewStyle=UIAlertViewStyleSecureTextInput;
-    //            alert.tag=2;
-    //            [alert show];
-    //        }else
-    //        {
-    //            BSDataProvider *dp=[[BSDataProvider alloc] init];
-    //                            if (x==[_selectArray count]-1) {
-    //                    x=0;
-    //                    [[NSNotificationCenter defaultCenter] postNotificationName:@"updata" object:nil];
-    //                    [self updata];
-    //                    [_selectArray removeAllObjects];
-    //                    [tvOrder reloadData];
-    //                }
-    //                else
-    //                {
-    //                    x++;
-    //                    [self over];
-    //                }
-    //            }else
-    //            {
-    //                if ([[dict objectForKey:@"pcount"] intValue]==[[dict objectForKey:@"Over"] intValue]) {
-    //                    [dict setValue:@"1" forKey:@"recount"];
-    //                }else
-    //                {
-    //                [dict setValue:@"1" forKey:@"count"];
-    //                }
-    //                [_dish addObject:dict];
-    //                [self selectcount];
-    //            }
-    //        }
-    //
-    //    for (NSDictionary *dict in _selectArray) {
-    //        NSString *str1=[dict objectForKey:@"PKID"];
-    //        NSString *str2=[dict objectForKey:@"Pcode"];
-    //        if ([[dict objectForKey:@"Over"] intValue]>1) {
-    //
-    //        }else
-    //        {
-    //        int i=[BSDataProvider updata:[Singleton sharedSingleton].Seat orderID:[Singleton sharedSingleton].CheckNum pkid:str1 code:str2 Over:@"0"];
-    //        if (i==0) {
-    //            BSDataProvider *bs=[[BSDataProvider alloc] init];
-    //            [bs suppProductsFinish];
-    //        }
-    //        }
-    //
-    //    }
-    //    [_selectArray removeAllObjects];
-    //    _dataArray=[BSDataProvider tableNum:[Singleton sharedSingleton].Seat orderID:[Singleton sharedSingleton].CheckNum];
-    //    [tvOrder reloadData];
-    //[BSDataProvider]
-    //    }
 }
 -(void)selectcount
 {
@@ -690,29 +630,22 @@ A:
         NSDictionary *dict=[_selectArray objectAtIndex:x];
         if (buttonIndex==1) {
             UITextField *tf1 = [alertView textFieldAtIndex:0];
-            UITextField *tf2=[alertView textFieldAtIndex:1];
-            if ([tf1.text length]>0||[tf2.text length]>0) {
-                if ([tf1.text length]==0) {
-                    [dict setValue:@"0" forKey:@"pcount"];
-                    [dict setValue:tf2.text forKey:@"Over"];
-                }
-                if ([tf2.text length]==0) {
-                    [dict setValue:@"0" forKey:@"Over"];
-                    [dict setValue:tf1.text forKey:@"pcount"];
-                }
-                if ([tf1.text length]>0&&[tf2.text length]>0) {
-                    [dict setValue:tf1.text forKey:@"pcount"];
-                    [dict setValue:tf2.text forKey:@"Over"];
-                }
+            if ([tf1.text length]>0) {
+                    [dict setValue:tf1.text forKey:@"count"];
             }
             if ([tf1.text intValue]>[[dict objectForKey:@"pcount"] intValue]) {
-                UIAlertView *alert=[[UIAlertView alloc] initWithTitle:@"提示" message:@"输入有误" delegate:nil cancelButtonTitle:[[CVLocalizationSetting sharedInstance] localizedString:@"OK"] otherButtonTitles: nil];
-                [alert show];
+                
+                [SVProgressHUD showErrorWithStatus:@"输入有误请重新输入"];
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.8 * NSEC_PER_SEC)),dispatch_get_main_queue(), ^{
+                    [self tuicai];
+                });
+                
                 return;
             }
             
             if (x==[_selectArray count]-1) {
                 x=0;
+                [self chuckOrder];
                 return;
             }
             else
@@ -720,22 +653,20 @@ A:
                 x++;
                 [self tuicai];
             }
-        }
-        else
+        }else
         {
-            if (x==[_selectArray count]-1) {
+            if ([dict isEqual:[_selectArray lastObject]]) {
+                [_selectArray removeObjectAtIndex:x];
                 x=0;
-                return;
-            }
-            else
+                [self chuckOrder];
+            }else
             {
-                x++;
-                [dict setValue:@"0" forKey:@"pcount"];
-                [dict setValue:@"0" forKey:@"Over"];
+                [_selectArray removeObjectAtIndex:x];
                 [self tuicai];
             }
+            
+            
         }
-        
     }
 }
 
@@ -790,29 +721,44 @@ A:
     NSArray *array=[self.navigationController viewControllers];
     [self.navigationController popToViewController:[array objectAtIndex:1] animated:YES];
 }
-/**
- *  与打印按钮事件
- */
+#pragma mark - 打印按钮事件
 - (void)printQuery{
-    [SVProgressHUD showProgress:-1 status:[[CVLocalizationSetting sharedInstance] localizedString:@"load..."]];
-    NSThread *thread=[[NSThread alloc] initWithTarget:self selector:@selector(priPrintOrder) object:nil];
-    [thread start];
-    
+    bs_dispatch_sync_on_main_thread(^{
+        if (!printQuery){
+            printQuery = [[BSPrintQueryView alloc] initWithFrame:CGRectMake(0, 0, 492, 354)];
+            printQuery.delegate = self;
+            printQuery.center = self.view.center;
+            [self.view addSubview:printQuery];
+            [printQuery firstAnimation];
+        }
+        else{
+            [printQuery removeFromSuperview];
+            printQuery = nil;
+        }
+    });
 }
-/**
- *  预打印
- */
--(void)priPrintOrder
+#pragma mark - 打印代理事件
+-(void)printQueryWithOptions:(NSDictionary *)info
+{
+    if (info) {
+        [SVProgressHUD showProgress:-1 status:[[CVLocalizationSetting sharedInstance] localizedString:@"load..."]];
+        NSThread *thread=[[NSThread alloc] initWithTarget:self selector:@selector(priPrintOrder:) object:info];
+        [thread start];
+    }
+    [printQuery removeFromSuperview];
+    printQuery = nil;
+}
+
+#pragma mark - 打印请求
+-(void)priPrintOrder:(NSDictionary *)info
 {
     BSDataProvider *dp=[[BSDataProvider alloc] init];
-    NSDictionary *dict=[dp priPrintOrder];
+    NSDictionary *dict=[dp priPrintOrder:info];
     [SVProgressHUD dismiss];
-    if (dict) {
-        NSString *result = [[[dict objectForKey:@"ns:priPrintOrderResponse"] objectForKey:@"ns:return"] objectForKey:@"text"];
-        NSArray *ary1 = [result componentsSeparatedByString:@"@"];
-        UIAlertView *alerView=[[UIAlertView alloc] initWithTitle:[ary1 lastObject] message:nil delegate:self cancelButtonTitle:[[CVLocalizationSetting sharedInstance] localizedString:@"OK"] otherButtonTitles: nil];
-        [alerView show];
-    }
+    if ([[dict objectForKey:@"Result"] boolValue]==YES)
+        [SVProgressHUD showSuccessWithStatus:[dict objectForKey:@"Message"]];
+    else
+        [SVProgressHUD showErrorWithStatus:[dict objectForKey:@"Message"]];
 }
 /**
  *  进入预结算
@@ -821,8 +767,18 @@ A:
 {
     if(![Singleton sharedSingleton].isYudian)
     {
-        AKQueryViewController *ak=[[AKQueryViewController alloc] init];
-        [self.navigationController pushViewController:ak animated:YES];
+        if ([[Singleton sharedSingleton].jurisdiction intValue]<3) {
+            AKQueryViewController *ak=[[AKQueryViewController alloc] init];
+            [self.navigationController pushViewController:ak animated:YES];
+
+        }else
+        {
+            bs_dispatch_sync_on_main_thread(^{
+                UIAlertView *alert=[[UIAlertView alloc] initWithTitle:@"没用此权限" message:nil delegate:self cancelButtonTitle:[[CVLocalizationSetting sharedInstance] localizedString:@"OK"] otherButtonTitles: nil];
+                [alert show];
+                
+            });
+        }
     }
     else
     {
@@ -928,7 +884,6 @@ A:
                 vChuck.center = self.view.center;
                 [self.view addSubview:vChuck];
                 [vChuck firstAnimation];
-                [self tuicai];
             }
         });
         
@@ -949,40 +904,34 @@ A:
  */
 -(void)tuicai
 {
-    NSMutableDictionary *dict=[_selectArray objectAtIndex:x];
-    if ([[dict objectForKey:@"pcount"] intValue]>1) {
-        UIAlertView *alert=[[UIAlertView alloc] initWithTitle:@"退菜数量" message:[dict objectForKey:@"PCname"] delegate:self cancelButtonTitle:@"取消" otherButtonTitles:[[CVLocalizationSetting sharedInstance] localizedString:@"OK"], nil];
-        alert.alertViewStyle=UIAlertViewStyleLoginAndPasswordInput;
-        UITextField *tf1 = [alert textFieldAtIndex:0];
-        tf1.keyboardType=UIKeyboardTypeNumberPad;
-        tf1.clearButtonMode=UITextFieldViewModeAlways;
-        tf1.placeholder=[NSString stringWithFormat:@"未上菜:%@",[dict objectForKey:@"Over"]];
-        UITextField *tf2 = [alert textFieldAtIndex:1];
-        [tf2 setSecureTextEntry:NO];
-        tf2.keyboardType=UIKeyboardTypeNumberPad;
-        tf2.placeholder=[NSString stringWithFormat:@"已划菜:%d",[[dict objectForKey:@"pcount"] intValue]-[[dict objectForKey:@"Over"] intValue]];
-        tf2.clearButtonMode=UITextFieldViewModeAlways;
-        
-        tf1.delegate=self;
-        tf2.delegate=self;
-        
-        alert.tag=3;
-        [alert show];
-        
-    }else
-    {
-        if (x==[_selectArray count]-1) {
-            x=0;
-            return;
-            [tvOrder reloadData];
-        }
-        else
+    if ([_selectArray count]>0) {
+        NSMutableDictionary *dict=[_selectArray objectAtIndex:x];
+        if ([[dict objectForKey:@"pcount"] intValue]>1) {
+            UIAlertView *alert=[[UIAlertView alloc] initWithTitle:@"退菜数量" message:[dict objectForKey:@"PCname"] delegate:self cancelButtonTitle:@"取消" otherButtonTitles:[[CVLocalizationSetting sharedInstance] localizedString:@"OK"], nil];
+            alert.alertViewStyle=UIAlertViewStylePlainTextInput;
+            UITextField *tf1 = [alert textFieldAtIndex:0];
+            tf1.keyboardType=UIKeyboardTypeNumberPad;
+            tf1.clearButtonMode=UITextFieldViewModeAlways;
+            tf1.placeholder=[NSString stringWithFormat:@"菜品数量:%@",[dict objectForKey:@"pcount"]];
+            tf1.delegate=self;
+            alert.tag=3;
+            [alert show];
+            
+        }else
         {
-            x++;
-            [self tuicai];
+            if (x==[_selectArray count]-1) {
+                x=0;
+                return;
+                [tvOrder reloadData];
+            }
+            else
+            {
+                x++;
+                [self tuicai];
+            }
         }
+
     }
-    
 }
 /**
  *  返回
@@ -996,56 +945,25 @@ A:
 - (void)chuckOrderWithOptions:(NSDictionary *)info{
     tvOrder.userInteractionEnabled=YES;
     if (info) {
-        NSLog(@"%@",_selectArray);
-        [SVProgressHUD showProgress:-1 status:[[CVLocalizationSetting sharedInstance] localizedString:@"load..."]];
+//        [self chuckByCount:0];
+//        NSLog(@"%@",_selectArray);
+        
         NSMutableDictionary *dict=[[NSMutableDictionary alloc] init];
         NSArray *array=[[NSArray alloc] initWithArray:_selectArray];
         [dict setValue:array forKey:@"dataArray"];
         [dict setValue:info forKey:@"info"];
-        NSLog(@"%@",dict);
+        [SVProgressHUD showProgress:-1 status:[[CVLocalizationSetting sharedInstance] localizedString:@"load..."]];
         NSThread *thread=[[NSThread alloc] initWithTarget:self selector:@selector(chuckOrder:) object:dict];
         [thread start];
     }
     else
     {
         [self updata];
-        [self dismissViews];
+        [_selectArray removeAllObjects];
     }
-    [tvOrder reloadData];
-    [_selectArray removeAllObjects];
-    [self updateTitle];
+    [self dismissViews];
 }
-//退菜
-//- (void)chuckFood:(NSDictionary *)info{
-//    BSDataProvider *dp = [BSDataProvider sharedInstance];
-//    NSDictionary *dict = [dp pChuck:info];
-//    CVLocalizationSetting *langSetting = [CVLocalizationSetting sharedInstance];
-//
-//    BOOL bSucceed = [[dict objectForKey:@"Result"] boolValue];
-//
-//
-//    NSString *title,*msg;
-//    if (bSucceed){
-//        title = [langSetting localizedString:@"ChuckSucceed"];//@"退菜成功";
-//        msg = nil;
-//        [arySelectedFood removeAllObjects];
-//    }
-//    else{
-//        title = [langSetting localizedString:@"ChuckFailed"];//@"退菜失败";
-//        msg = [dict objectForKey:@"Message"];
-//    }
-//    bs_dispatch_sync_on_main_thread(^{
-//        UIAlertView *alert = [[UIAlertView alloc] initWithTitle:title message:msg delegate:nil cancelButtonTitle:[langSetting localizedString:@"OK"] otherButtonTitles:nil];
-//        [alert show];
-//    });
-//
-//
-//
-//    if (bSucceed){
-//        [NSThread detachNewThreadSelector:@selector(getQueryResult:) toTarget:self withObject:dicQuery];
-//    }
-//
-//}
+
 /**
  *  退菜
  *
@@ -1053,51 +971,38 @@ A:
  */
 -(void)chuckOrder:(NSDictionary *)info
 {
+    if ([[info objectForKey:@"ISTC"] intValue]==1) {
+        UIAlertView *alert=[[UIAlertView alloc] initWithTitle:@"套餐里的菜不能退菜" message:nil delegate:nil cancelButtonTitle:@"确定" otherButtonTitles:nil];
+        [alert show];
+        return;
+    }
     BSDataProvider *dp=[[BSDataProvider alloc] init];
-    NSDictionary *dict=[dp checkAuth:[info objectForKey:@"info"]];
-    
-    NSLog(@"%@",dict);
+    NSDictionary *dict=[dp checkAuth1:[info objectForKey:@"info"]];
     if (dict) {
         NSString *result = [[[dict objectForKey:@"ns:checkAuthResponse"] objectForKey:@"ns:return"] objectForKey:@"text"];
         NSArray *ary1 = [result componentsSeparatedByString:@"@"];
-        NSLog(@"%@",ary1);
         if ([ary1 count]==1) {
-            UIAlertView *alwet=[[UIAlertView alloc] initWithTitle:@"提示" message:[ary1 lastObject] delegate:self cancelButtonTitle:[[CVLocalizationSetting sharedInstance] localizedString:@"OK"] otherButtonTitles: nil];
-            [alwet show];
+            [SVProgressHUD showErrorWithStatus:[ary1 lastObject]];
         }
         else
         {
-            
             if ([[ary1 objectAtIndex:0] isEqualToString:@"0"]) {
-                NSLog(@"%@",_selectArray);
-                NSDictionary *dict1=[dp chkCode:[info objectForKey:@"dataArray"] info:[info objectForKey:@"info"]];
-                [SVProgressHUD dismiss];
-                NSLog(@"%@",dict1);
-                NSString *result1 = [[[dict1 objectForKey:@"ns:sendcResponse"] objectForKey:@"ns:return"] objectForKey:@"text"];
-                NSArray *ary2 = [result1 componentsSeparatedByString:@"@"];
-                
-                if ([ary2 count]==1) {
-                    UIAlertView *alwet1=[[UIAlertView alloc] initWithTitle:[ary2 lastObject] message:nil delegate:self cancelButtonTitle:[[CVLocalizationSetting sharedInstance] localizedString:@"OK"] otherButtonTitles: nil];
-                    [alwet1 show];
-                }
-                else
-                {
+                BSDataProvider *dp=[[BSDataProvider alloc] init];
+                NSDictionary *dic=[dp cancleProducts:info];
+                if (dic) {
                     
-                    if ([[ary2 objectAtIndex:0] isEqualToString:@"0"]) {
-                        UIAlertView *alwet1=[[UIAlertView alloc] initWithTitle:[ary2 lastObject] message:nil delegate:self cancelButtonTitle:[[CVLocalizationSetting sharedInstance] localizedString:@"OK"] otherButtonTitles: nil];
-                        [alwet1 show];
-                        [[NSNotificationCenter defaultCenter] postNotificationName:@"updata" object:nil];
-                        [self updata];
-                        [self dismissViews];
-                        [tvOrder reloadData];
-                    }
-                    else
-                    {
-                        UIAlertView *alwet1=[[UIAlertView alloc] initWithTitle:[ary2 lastObject] message:nil delegate:self cancelButtonTitle:[[CVLocalizationSetting sharedInstance] localizedString:@"OK"] otherButtonTitles: nil];
-                        [alwet1 show];
+                    [SVProgressHUD dismiss];
+                    if ([[dic objectForKey:@"return"] intValue]==0) {
+                        [SVProgressHUD showSuccessWithStatus:[dic objectForKey:@"success"]];
+                        
+                    }else{
+                        [SVProgressHUD showErrorWithStatus:[dic objectForKey:@"error"]];
                     }
                 }
                 
+                [_selectArray removeAllObjects];
+                [self updata];
+               
             }
             else
             {
@@ -1107,8 +1012,8 @@ A:
             }
         }
     }
-    
 }
+
 #pragma mark Show Latest Price & Number
 /**
  *  计算数量价格
@@ -1148,9 +1053,6 @@ A:
 
 - (void)dismissViews{
     bs_dispatch_sync_on_main_thread(^{
-        
-        
-        
         if (vChuck && vChuck.superview){
             [vChuck removeFromSuperview];
             vChuck = nil;
@@ -1198,7 +1100,15 @@ A:
             
             return NO;
     }
-    
+}
+#pragma mark - 注销登录
+-(void)logout
+{
+    [Singleton sharedSingleton].userInfo=nil;
+    NSArray *array=[self.navigationController viewControllers];
+    if ([array count]>0) {
+        [self.navigationController popToRootViewControllerAnimated:YES];
+    }
 }
 
 @end

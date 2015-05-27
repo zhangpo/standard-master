@@ -9,6 +9,7 @@
 #import "AKSwitchTableViewCell.h"
 
 @implementation AKSwitchTableViewCell
+@synthesize dataInfo=_dataInfo;
 
 - (id)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier
 {

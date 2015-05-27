@@ -36,7 +36,7 @@
 //        _lb.text=@"附加项";
 //        _lb.textColor=[UIColor redColor];
         [self.contentView addSubview:_lb];
-        _addition=[[UILabel alloc] initWithFrame:CGRectMake(100+59*3, 0, 300, 60)];
+        _addition=[[UILabel alloc] initWithFrame:CGRectMake(100+59*2, 0, 268, 60)];
         _addition.lineBreakMode = UILineBreakModeWordWrap;     //指定换行模式
         _addition.numberOfLines = 3;    // 指定label的行数
         _addition.textColor=[UIColor blackColor];

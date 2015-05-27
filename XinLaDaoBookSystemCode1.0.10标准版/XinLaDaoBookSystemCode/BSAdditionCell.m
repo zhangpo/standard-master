@@ -79,8 +79,8 @@
 - (void)setContent:(NSDictionary *)dict withTag:(int)tag{
     if (tag==1) {
         self.info = dict;
-        lblContent.text = [dict objectForKey:@"FoodFuJia_Des"];
-        lblPrice.text=[dict objectForKey:@"FoodFujia_Checked"];
+        lblContent.text = [dict objectForKey:@"FNAME"]!=nil?[dict objectForKey:@"FNAME"]:[dict objectForKey:@"FoodFuJia_Des"];
+        lblPrice.text=[dict objectForKey:@"FPRICE"]!=nil?[dict objectForKey:@"FPRICE"]:[dict objectForKey:@"FoodFujia_Checked"];
     }
     else
     {

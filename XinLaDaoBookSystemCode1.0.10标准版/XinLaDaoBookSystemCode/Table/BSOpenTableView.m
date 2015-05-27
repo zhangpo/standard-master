@@ -12,13 +12,17 @@
 #import "AKsNetAccessClass.h"
 
 @implementation BSOpenTableView
-@synthesize delegate=_delegate,btn=_btn;
+{
+    NSString *openTag;
+}
+@synthesize delegate=_delegate,btn=_btn,tableDic=_tableDic;
 
-- (id)initWithFrame:(CGRect)frame
+- (id)initWithFrame:(CGRect)frame withtag:(NSString *)tag
 {
     self = [super initWithFrame:frame];
     if (self) {
         // Initialization code
+        openTag=tag;
         if ([[NSUserDefaults standardUserDefaults] boolForKey:@"ShowButton_image"]) {//判断设置里的版本
             [self viewLoad1];
             
@@ -33,7 +37,13 @@
 {
     self.transform = CGAffineTransformIdentity;
     CVLocalizationSetting *localization=[CVLocalizationSetting sharedInstance];
-    [self setTitle:[localization localizedString:@"Open Table"]];
+    if ([openTag intValue]==1) {
+        [self setTitle:[localization localizedString:@"Open Table"]];
+    }else
+    {
+        [self setTitle:@"搭台"];
+    }
+    
     lblPeople = [[UILabel alloc] initWithFrame:CGRectMake(15, 130, 80, 30)];
     lblPeople.font=[UIFont italicSystemFontOfSize:20];
     lblPeople.textAlignment = UITextAlignmentRight;
@@ -81,7 +91,12 @@
 {
     self.transform = CGAffineTransformIdentity;
     CVLocalizationSetting *localization=[CVLocalizationSetting sharedInstance];
-     [self setTitle:[localization localizedString:@"Open Table"]];
+    if ([openTag intValue]==1) {
+        [self setTitle:[localization localizedString:@"Open Table"]];
+    }else
+    {
+        [self setTitle:@"搭台"];
+    }
     lblUser = [[UILabel alloc] initWithFrame:CGRectMake(15, 80, 90, 40)];
     lblUser.textAlignment = UITextAlignmentRight;
     lblUser.backgroundColor = [UIColor clearColor];
@@ -182,18 +197,18 @@
         
         if ([tfPeople.text length]>0)
         {
-            [dic setObject:tfPeople.text forKey:@"man"];
+            [_tableDic setValue:tfPeople.text forKeyPath:@"man"];
             [Singleton sharedSingleton].man=tfPeople.text;
         }
-        [dic setObject:@"0" forKey:@"tag"];
-        [_delegate openTableWithOptions:dic];
+        [_tableDic setValue:@"0" forKeyPath:@"tag"];
+        [_tableDic setValue:openTag forKeyPath:@"openTag"];
+        [_delegate openTableWithOptions:_tableDic];
         
     }else{
         if ([tfPeople.text intValue]>0||[tfUser.text intValue]>0) {
             NSMutableDictionary *dict=[NSMutableDictionary dictionary];
             [Singleton sharedSingleton].man=tfUser.text;
             [Singleton sharedSingleton].woman=tfPeople.text;
-            NSLog(@"%@",tfPeople.text);
             if ([tfUser.text length]==0) {
                 tfUser.text=0;
             }
@@ -201,11 +216,11 @@
             {
                 tfPeople.text=0;
             }
-            NSLog(@"%@",tfPeople.text);
-            [dict setValue:tfPeople.text forKey:@"woman"];
-            [dict setValue:tfUser.text forKey:@"man"];
-            [dict setValue:@"1" forKey:@"tag"];
-            [_delegate openTableWithOptions:dict];
+            [_tableDic setValue:tfPeople.text forKey:@"woman"];
+            [_tableDic setValue:tfUser.text forKey:@"man"];
+            [_tableDic setValue:@"1" forKey:@"tag"];
+            [_tableDic setValue:openTag forKey:@"openTag"];
+            [_delegate openTableWithOptions:_tableDic];
         }
         else
         {

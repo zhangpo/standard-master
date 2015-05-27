@@ -48,7 +48,7 @@
 -(void)viewWillAppear:(BOOL)animated
 {
     [super viewWillAppear:animated];
-    
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(logout) name:@"LOGOUT" object:nil];
     self.navigationController.navigationBar.hidden=YES;
     _dataArray=[[NSMutableArray alloc] init];
     _searchDict=[NSMutableDictionary dictionary];
@@ -114,8 +114,10 @@
 -(void)viewLoad1
 {
     [self searchBarInit];
-    AKMySegmentAndView *segmen=[[AKMySegmentAndView alloc] init];
+    AKMySegmentAndView *segmen=[AKMySegmentAndView shared];
     segmen.delegate=self;
+    [segmen segmentShow:NO];
+    [segmen shoildCheckShow:NO];
     segmen.frame=CGRectMake(0, 0, 768, 114-60);
     [[segmen.subviews objectAtIndex:1]removeFromSuperview];
     [self.view addSubview:segmen];
@@ -315,10 +317,11 @@
     cell.lblAddition.text=@"";
     cell.lb.text=@"";
     cell.tfCount.backgroundColor=[UIColor lightGrayColor];
+    cell.dicInfo=[_dataArray objectAtIndex:indexPath.row];
     /**
      *  判断是套餐明细
      */
-    if (![[_dataArray objectAtIndex:indexPath.row]  objectForKey:@"SUBID"]) {
+    if (![[_dataArray objectAtIndex:indexPath.row]  objectForKey:@"CNT"]) {
         cell.tfPrice.text=[NSString stringWithFormat:@"%.2f",[[[_dataArray objectAtIndex:indexPath.row]  objectForKey:@"PRICE"] floatValue]];
         cell.lblUnit.text=[[_dataArray objectAtIndex:indexPath.row]  objectForKey:@"UNIT"];
         cell.lblName.text=[NSString stringWithFormat:@"%@",[[_dataArray objectAtIndex:indexPath.row]  objectForKey:@"DES"]];
@@ -394,7 +397,7 @@
          *  根据附加项来改变cell的宽度
          */
         for (int i=0; i<[additions count]; i++){
-            [str appendFormat:@"%@,",[[additions objectAtIndex:i] objectForKey:@"FoodFuJia_Des"]];
+            [str appendFormat:@"%@,",[[additions objectAtIndex:i] objectForKey:@"FNAME"]];
         }
         CGSize size = CGSizeMake(440,10000);  //设置宽高，其中高为允许的最大高度
         CGSize labelsize = [str sizeWithFont:cell.lblAddition.font constrainedToSize:size lineBreakMode:NSLineBreakByWordWrapping];    //通过文本_lblContent.text的字数，字体的大小，限制的高度大小以及模式来获取label的大小
@@ -431,7 +434,7 @@
     {
         NSMutableString *str=[NSMutableString string];
         for (int i=0; i<[additions count]; i++) {
-            [str appendFormat:@"%@,",[[additions objectAtIndex:i] objectForKey:@"FoodFuJia_Des"]];
+            [str appendFormat:@"%@,",[[additions objectAtIndex:i] objectForKey:@"FNAME"]];
         }
         CGSize size = CGSizeMake(440,10000);  //设置宽高，其中高为允许的最大高度
         CGSize labelsize = [str sizeWithFont:[UIFont systemFontOfSize:16] constrainedToSize:size lineBreakMode:NSLineBreakByWordWrapping];
@@ -583,7 +586,7 @@
         }else
         {
             BSDataProvider *dp=[[BSDataProvider alloc] init];
-            NSDictionary *dict=[dp checkAuth:info];
+            NSDictionary *dict=[dp checkAuth1:info];
             NSLog(@"%@",dict);
             if (dict) {
                 NSString *result = [[[dict objectForKey:@"ns:checkAuthResponse"] objectForKey:@"ns:return"] objectForKey:@"text"];
@@ -657,7 +660,7 @@
             int j=[_dataArray count];
             tpcode=[[_dataArray objectAtIndex:index] objectForKey:@"ITCODE"];
             for (int i=0;i<j;i++) {
-                if (([[[_dataArray objectAtIndex:index] objectForKey:@"DES"] isEqualToString:[[_dataArray objectAtIndex:i] objectForKey:@"DES"]]&&[[[_dataArray objectAtIndex:index] objectForKey:@"TPNUM"] isEqualToString:[[_dataArray objectAtIndex:i] objectForKey:@"TPNUM"]])||([[[_dataArray objectAtIndex:index] objectForKey:@"ITCODE"] isEqualToString:[[_dataArray objectAtIndex:i] objectForKey:@"Tpcode"]]&&[[[_dataArray objectAtIndex:index] objectForKey:@"TPNUM"] isEqualToString:[[_dataArray objectAtIndex:i] objectForKey:@"TPNUM"]])) {
+                if (([[[_dataArray objectAtIndex:index] objectForKey:@"DES"] isEqualToString:[[_dataArray objectAtIndex:i] objectForKey:@"DES"]]&&[[[_dataArray objectAtIndex:index] objectForKey:@"TPNUM"] isEqualToString:[[_dataArray objectAtIndex:i] objectForKey:@"TPNUM"]])||([[[_dataArray objectAtIndex:index] objectForKey:@"ITCODE"] isEqualToString:[[_dataArray objectAtIndex:i] objectForKey:@"PCODE"]]&&[[[_dataArray objectAtIndex:index] objectForKey:@"TPNUM"] isEqualToString:[[_dataArray objectAtIndex:i] objectForKey:@"TPNUM"]])) {
                     [array addObject:[NSString stringWithFormat:@"%d",i]];
                 }
             }
@@ -665,7 +668,7 @@
                 [_dataArray removeObjectAtIndex:[[array objectAtIndex:i] intValue]-i];
             }
             for (NSMutableDictionary *food in _dataArray) {
-                if ([[food objectForKey:@"ITCODE"] isEqualToString:tpcode]||[[food objectForKey:@"Tpcode"] isEqualToString:tpcode]) {
+                if ([[food objectForKey:@"ITCODE"] isEqualToString:tpcode]||[[food objectForKey:@"PCODE"] isEqualToString:tpcode]) {
                     if ([[food objectForKey:@"TPNUM"] intValue]>k) {
                         int x=[[food objectForKey:@"TPNUM"] intValue];
                         [food setValue:[NSString stringWithFormat:@"%d",x-1] forKey:@"TPNUM"];
@@ -927,7 +930,7 @@
     float fAdditionPrice = 0.0f;
     int i=0;
     for (NSDictionary *dic in _dataArray){
-        if ([dic objectForKey:@"ITEM"])
+        if ([dic objectForKey:@"ITCODE"])
         {
             if ([[dic objectForKey:@"total"] floatValue]>0)
             {
@@ -946,27 +949,54 @@
             }
         }
         i++;
-        NSArray *aryAdd = [dic objectForKey:@"addition"];
-        /**
-         *  计算附加项价格
-         */
-        for (NSDictionary *dicAdd in aryAdd){
-            BOOL bAdd = YES;
-            for (NSDictionary *dicCommonAdd in aryCommon){
-                if ([[dicAdd objectForKey:@"DES"] isEqualToString:[dicCommonAdd objectForKey:@"DES"]])
-                    bAdd = NO;
+        fAdditionPrice+=([self additionPrice:[dic objectForKey:@"addition"]])*[[dic objectForKey:@"total"] floatValue];
+        if ([[dic objectForKey:@"ISTC"] intValue]==1&&![dic objectForKey:@"isShow"]) {
+            for (NSDictionary *comboDic in [dic objectForKey:@"combo"]) {
+                fAdditionPrice+=[self additionPrice:[comboDic objectForKey:@"addition"]];
             }
-            
-            if (bAdd)
-                fAdditionPrice += [[dicAdd objectForKey:@"FoodFujia_Checked"] floatValue];
         }
-        
-        for (NSDictionary *dicCommonAdd in aryCommon){
-            fAdditionPrice += [[dicCommonAdd objectForKey:@"PRICE1"] floatValue];
-        }
+//        NSArray *aryAdd = [dic objectForKey:@"addition"];
+//        /**
+//         *  计算附加项价格
+//         */
+//        for (NSDictionary *dicAdd in aryAdd){
+//            BOOL bAdd = YES;
+//            for (NSDictionary *dicCommonAdd in aryCommon){
+//                if ([[dicAdd objectForKey:@"DES"] isEqualToString:[dicCommonAdd objectForKey:@"DES"]])
+//                    bAdd = NO;
+//            }
+//            
+//            if (bAdd)
+//                fAdditionPrice += [[dicAdd objectForKey:@"FPRICE"] floatValue];
+//        }
+//        
+//        for (NSDictionary *dicCommonAdd in aryCommon){
+//            fAdditionPrice += [[dicCommonAdd objectForKey:@"PRICE1"] floatValue];
+//        }
         
     }
     lblTitle.text = [NSString stringWithFormat:[langSetting localizedString:@"QueryTitle"],count,fPrice,fAdditionPrice];
+}
+-(float)additionPrice:(NSArray *)array
+{
+    float fAdditionPrice=0.00;
+    for (NSDictionary *dicAdd in array){
+        BOOL bAdd = YES;
+        for (NSDictionary *dicCommonAdd in aryCommon){
+            if ([[dicAdd objectForKey:@"DES"] isEqualToString:[dicCommonAdd objectForKey:@"DES"]])
+                bAdd = NO;
+        }
+        
+        if (bAdd)
+            fAdditionPrice += [[dicAdd objectForKey:@"FPRICE"] floatValue]*[[dicAdd objectForKey:@"total"] floatValue];
+    }
+    
+    for (NSDictionary *dicCommonAdd in aryCommon){
+        fAdditionPrice += [[dicCommonAdd objectForKey:@"PRICE1"] floatValue];
+    }
+    NSLog(@"%.2f",fAdditionPrice);
+    return fAdditionPrice;
+    
 }
 /**
  *  关闭全单备注或授权
@@ -1031,7 +1061,15 @@
         [self.view addSubview:showVip];
     }
 }
-
+#pragma mark - 注销登录
+-(void)logout
+{
+    [Singleton sharedSingleton].userInfo=nil;
+    NSArray *array=[self.navigationController viewControllers];
+    if ([array count]>1) {
+        [self.navigationController popToRootViewControllerAnimated:YES];
+    }
+}
 
 @end
 

@@ -611,40 +611,64 @@
 
 - (void)checkFTPSetting{
     
-    BOOL valid = NO;;
-    NSString *str = [tfSetting.text stringByReplacingOccurrencesOfString:@"/" withString:@""];
-    if ([tfUser.text length]==0 || [tfPass.text length]==0){
-        if ([str length]==0)
-            str = @"null";
-        else
-            str = [NSString stringWithFormat:@"ftp://%@/BookSystem/BookSystem.sqlite",str];
-    }
-    else{
-        if ([str length]==0)
-            str = @"null";
-        else
-            str = [NSString stringWithFormat:@"ftp://%@:%@@%@/BookSystem/BookSystem.sqlite",tfUser.text,tfPass.text,str];
-    }
-    
+    BOOL valid = NO;
     NSURLRequest *request;
-    NSURL *url = [NSURL URLWithString:str];
-    request = [[NSURLRequest alloc] initWithURL:url
-                                    cachePolicy:NSURLRequestUseProtocolCachePolicy
-                                timeoutInterval:5.0];
+    NSURL *url = nil;
+    NSString *str=nil;
+    NSURLResponse* response = nil;
+    NSError *error = nil;
+    NSData *serviceData;
+    for (int i=0; i<2; i++) {
+        
+        str = [tfSetting.text stringByReplacingOccurrencesOfString:@"/" withString:@""];
+        if ([tfUser.text length]==0 || [tfPass.text length]==0){
+            if ([str length]==0)
+                str = @"null";
+            else
+            {
+                if (i==0) {
+                    str = [NSString stringWithFormat:@"ftp://%@/BookSystem/BookSystem.sqlite",str];
+                }else
+                {
+                    str = [NSString stringWithFormat:@"ftp://%@/BookSystem.sqlite",str];
+                }
+                
+            }
+        }
+        else{
+            if ([str length]==0)
+                str = @"null";
+            else
+            {
+                if (i==0) {
+                    str = [NSString stringWithFormat:@"ftp://%@:%@@%@/BookSystem/BookSystem.sqlite",tfUser.text,tfPass.text,str];
+                }else
+                {
+                    str = [NSString stringWithFormat:@"ftp://%@:%@@%@/BookSystem.sqlite",tfUser.text,tfPass.text,str];
+                }
+                
+            }
+        }
+        url = [NSURL URLWithString:str];
+        request = [[NSURLRequest alloc] initWithURL:url
+                                        cachePolicy:NSURLRequestUseProtocolCachePolicy
+                                    timeoutInterval:5.0];
+        serviceData = [NSURLConnection sendSynchronousRequest:request
+                                                    returningResponse:&response
+                                                                error:&error];
+        NSLog(@"Error Info:%@",error);
+        if (serviceData) {
+            break;
+        }
+    }
+   
     
     
     // retreive the data using timeout
-    NSURLResponse* response;
-    NSError *error;
     
     
-    error = nil;
-    response = nil;
-    NSData *serviceData = [NSURLConnection sendSynchronousRequest:request
-                                                returningResponse:&response
-                                                            error:&error];
     
-    NSLog(@"Error Info:%@",error);
+    
     
     // 1001 is the error code for a connection timeout
     if (!serviceData) {

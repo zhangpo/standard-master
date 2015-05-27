@@ -9,5 +9,6 @@
 #import <UIKit/UIKit.h>
 
 @interface AKSwitchTableViewCell : UITableViewCell
+@property(nonatomic,strong)NSDictionary *dataInfo;
 
 @end

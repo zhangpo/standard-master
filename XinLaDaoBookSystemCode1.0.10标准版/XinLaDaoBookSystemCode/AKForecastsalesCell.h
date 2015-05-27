@@ -9,5 +9,6 @@
 #import <UIKit/UIKit.h>
 
 @interface AKForecastsalesCell : UITableViewCell
+-(void)setData:(NSDictionary *)dict;
 
 @end

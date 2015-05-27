@@ -9,6 +9,6 @@
 #import <UIKit/UIKit.h>
 #import "AKMySegmentAndView.h"
 
-@interface AKSelectCheck : UIViewController<UITableViewDataSource,UITableViewDelegate,AKMySegmentAndViewDelegate>
+@interface AKSelectCheck : UIViewController<UITableViewDataSource,UITableViewDelegate,AKMySegmentAndViewDelegate,UISearchBarDelegate>
 
 @end

@@ -12,15 +12,18 @@
 #import "AKOrderRepastViewController.h"
 #import "BSDataProvider.h"
 #import "Singleton.h"
-#import "AKOrderLeft.h"
-#import "MMExampleDrawerVisualStateManager.h"
-#import "MMDrawerController.h"
+#import "AKForecastSalesViewController.h"
 #import "BSSettingViewController.h"
 #import "AKsCanDanListClass.h"
 #import "PaymentSelect.h"
 #import "SVProgressHUD.h"
 #import "UIKitUtil.h"
 #import "CVLocalizationSetting.h"
+
+
+#define HHTserviceMin @"7.3.53"     //hhtservice最小支持版本号
+#define HHTserviceMax @"7.0.30"     //hhtservice最大支持版本号
+
 @interface AKLogInViewController ()
 {
     UILabel         *lb;            //显示当前登录的员工号
@@ -269,17 +272,22 @@
  *  @param sender
  */
 - (IBAction)logIn:(UIButton *)sender {
-//  [self AKOrder];
+//    ZBarReaderViewController *reader = [ZBarReaderViewController new];
+//    reader.readerDelegate = self;
+//    reader.supportedOrientationsMask = ZBarOrientationMaskAll;
+//    
+//    ZBarImageScanner *scanner = reader.scanner;
+//    
+//    [scanner setSymbology: ZBAR_I25
+//                   config: ZBAR_CFG_ENABLE
+//                       to: 0];
+//    [self presentModalViewController:reader animated: YES];
     [SVProgressHUD dismiss];
     if (_textField1.text.length&&_textField2.text.length) {
         NSDictionary *requestDic = [NSDictionary dictionaryWithObjectsAndKeys:self.textField1.text,@"userCode",self.textField2.text,@"usePass", nil];
         [SVProgressHUD showProgress:-1 status:[[CVLocalizationSetting sharedInstance] localizedString:@"load..."] maskType:SVProgressHUDMaskTypeBlack];
         /**
-         *  调用登录
-         *
          *  @param loginRequest: 登录信息
-         *
-         *  @return
          */
         [NSThread detachNewThreadSelector:@selector(loginRequest:) toTarget:self withObject:requestDic];
     }else{
@@ -299,6 +307,8 @@
  */
 -(void)loginRequest:(NSDictionary *)requestDic
 {
+   
+
     BSDataProvider *dp=[[BSDataProvider alloc] init];
     NSDictionary *dict=[dp pLoginUser:requestDic];
     if (dict) {
@@ -334,7 +344,28 @@
                 [AKsNetAccessClass sharedNetAccess].baoliuXiaoshu=[ary objectAtIndex:3];
                 [Singleton sharedSingleton].Time=[ary objectAtIndex:1];
                 [AKsNetAccessClass sharedNetAccess].dataVersion=[ary objectAtIndex:4];
+                [Singleton sharedSingleton].jurisdiction=[ary objectAtIndex:2];
                 [Singleton sharedSingleton].userName=[ary objectAtIndex:6];
+                NSString *min=HHTserviceMin;
+//                NSString *max=HHTserviceMax;
+//                if ([ary lastObject]) {
+//                    NSArray *array1=[[ary lastObject] componentsSeparatedByString:@"."];
+//                    NSArray *array2=[min componentsSeparatedByString:@"."];
+//                    //                                NSArray *array3=[max componentsSeparatedByString:@"."];
+//                    for (int i=0; i<3; i++) {
+//                        if([[array1 objectAtIndex:i] intValue]<[[array2 objectAtIndex:i] intValue])
+//                        {
+//                            UIAlertView *alert=[[UIAlertView alloc] initWithTitle:[NSString stringWithFormat:@"HHTservice版本号低，请联系网管，及时更新%@以上版本的程序",min] message:nil delegate:nil cancelButtonTitle:@"确认" otherButtonTitles:nil];
+//                            [alert show];
+//                            alert=nil;
+//                            return ;
+//                        }
+//                        
+//                    }
+//                    array1=nil;
+//                    array2=nil;
+//                }
+
                 NSDictionary *BanBen=[[NSDictionary alloc]initWithObjectsAndKeys:[ary objectAtIndex:4],@"POS",[ary objectAtIndex:5],@"HHT", nil];
                 [[NSUserDefaults standardUserDefaults]setObject:BanBen forKey:@"BanBen"];
                 [[NSUserDefaults standardUserDefaults]synchronize];
@@ -368,30 +399,17 @@
             else
             {
                 [SVProgressHUD dismiss];
-                NSLog(@"%@",content);
                 if (content==nil) {
                     content=[[CVLocalizationSetting sharedInstance] localizedString:@"network connection timeout"];
                 }
-                UIAlertView *alert = [[UIAlertView alloc]initWithTitle:nil
-                                                               message:content
-                                                              delegate:nil
-                                                     cancelButtonTitle:[[CVLocalizationSetting sharedInstance] localizedString:@"OK"]
-                                                     otherButtonTitles:nil];
-                [alert show];
-                
-                
+                [SVProgressHUD showErrorWithStatus:content];
             }
         }
     }
     else
     {
         [SVProgressHUD dismiss];
-        UIAlertView *alert = [[UIAlertView alloc]initWithTitle:nil
-                                                       message:[[CVLocalizationSetting sharedInstance] localizedString:@"network connection timeout"]
-                                                      delegate:nil
-                                             cancelButtonTitle:[[CVLocalizationSetting sharedInstance] localizedString:@"OK"]
-                                             otherButtonTitles:nil];
-        [alert show];
+        [SVProgressHUD showErrorWithStatus:[[CVLocalizationSetting sharedInstance] localizedString:@"network connection timeout"]];
         
     }
 }

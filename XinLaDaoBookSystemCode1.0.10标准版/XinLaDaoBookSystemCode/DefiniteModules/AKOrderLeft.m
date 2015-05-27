@@ -100,14 +100,12 @@
         cell=[[AKOredrCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:cellName];
     }
     cell.name.text=@"";
-    NSLog(@"%d",indexPath.row);
-    NSLog(@"%@",[[_dataArray objectAtIndex:indexPath.row] objectForKey:@"DES"]);
     cell.count.text=[[_dataArray objectAtIndex:indexPath.row] objectForKey:@"total"];
     if ([[_dataArray objectAtIndex:indexPath.row] objectForKey:@"CNT"]==nil) {
         cell.name.text=[[_dataArray objectAtIndex:indexPath.row] objectForKey:@"DES"];
     }else
     {
-        cell.name.text=[NSString stringWithFormat:@"--%@",[[_dataArray objectAtIndex:indexPath.row] objectForKey:@"DES"]];
+        cell.name.text=[NSString stringWithFormat:@"--%@",[[_dataArray objectAtIndex:indexPath.row] objectForKey:@"PNAME"]];
     }
     
     return cell;

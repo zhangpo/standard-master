@@ -24,7 +24,8 @@
     
     __weak id<OpenTableViewDelegate>_delegate;
 }
-@property(nonatomic,assign)UIButton *btn;
+@property(nonatomic,strong)UIButton *btn;
+@property(nonatomic,strong)NSDictionary *tableDic;
 @property (nonatomic,weak)__weak id<OpenTableViewDelegate>delegate;
-
+- (id)initWithFrame:(CGRect)frame withtag:(NSString *)tag;
 @end

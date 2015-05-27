@@ -27,7 +27,7 @@
 @synthesize delegate=_delegate;
 /**
  *
- *      
+ *
  */
 - (id)initWithFrame:(CGRect)frame withSelectAddtions:(NSArray *)array
 {
@@ -39,43 +39,43 @@
         _classArray=[NSMutableArray array];
         _selectArray=[NSMutableArray array];
         _buttonArray=[NSMutableArray array];
-        _dataArray=[NSMutableArray arrayWithArray:[bs WebSelectAddition]];
+        _dataArray=[NSMutableArray arrayWithArray:[bs getAdditionsAndClass]];
         [_selectArray addObjectsFromArray:array];
-        UIScrollView *scroll=[[UIScrollView alloc] initWithFrame:CGRectMake(0, 50,frame.size.width, 50)];
+        UIScrollView *scroll=[[UIScrollView alloc] initWithFrame:CGRectMake(12, 50,frame.size.width, 50)];
         [scroll setContentSize:CGSizeMake(80*[_dataArray count], 50)];
         int i=0;
         [self addSubview:scroll];
-        _scrollView=[[UIScrollView alloc] initWithFrame:CGRectMake(0, 100,frame.size.width, frame.size.height-200)];
+        _scrollView=[[UIScrollView alloc] initWithFrame:CGRectMake(10, 100,frame.size.width, frame.size.height-200)];
         [self addSubview:_scrollView];
         aryCustomAdditions=[NSMutableArray array];
         for (NSDictionary *dict in _selectArray) {
-            if (![dict objectForKey:@"FOODFUJIA_ID"]) {
+            if (![dict objectForKey:@"FCODE"]) {
                 [aryCustomAdditions addObject:dict];
             }
         }
-        NSDictionary *dict=[[NSDictionary alloc] initWithObjectsAndKeys:@"自定义",@"typvname",aryCustomAdditions,@"addition", nil];
+        NSDictionary *dict=[[NSDictionary alloc] initWithObjectsAndKeys:@"自定义",@"name",aryCustomAdditions,@"addition", nil];
         [_dataArray addObject:dict];
         for (id arry in _dataArray) {
-//            if ([arry count]>0) {
-                UIButton *button=[UIButton buttonWithType:UIButtonTypeCustom];
-                button.frame=CGRectMake(130*i+10, 7,130, 40);
+            //            if ([arry count]>0) {
+            UIButton *button=[UIButton buttonWithType:UIButtonTypeCustom];
+            button.frame=CGRectMake(120*i+10, 7,120, 40);
             if (arry==[_dataArray lastObject])
-                [button setTitle:[arry objectForKey:@"typvname"] forState:UIControlStateNormal];
+                [button setTitle:[arry objectForKey:@"name"] forState:UIControlStateNormal];
             else
-                [button setTitle:[[arry objectAtIndex:0] objectForKey:@"typvname"] forState:UIControlStateNormal];
+                [button setTitle:[[arry objectAtIndex:0] objectForKey:@"name"] forState:UIControlStateNormal];
             
-                [button setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
-                i==0?[button setBackgroundImage:[[CVLocalizationSetting sharedInstance] imgWithContentsOfFile:@"blackButton.png"] forState:UIControlStateNormal]:[button setBackgroundImage:[[CVLocalizationSetting sharedInstance] imgWithContentsOfFile:@"whiteButton.png"] forState:UIControlStateNormal];
-                    button.titleLabel.font=[UIFont fontWithName:@"ArialRoundedMTBold"size:20];
-                [button addTarget:self action:@selector(selectButton:) forControlEvents:UIControlEventTouchUpInside];
-                button.tag=i;
-                [scroll addSubview:button];
-                if (i==0) {
-                    [self selectButton:button];
-                }
-                [_classArray addObject:button];
-                i++;
-//            }
+            [button setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
+            i==0?[button setBackgroundImage:[[CVLocalizationSetting sharedInstance] imgWithContentsOfFile:@"blackButton.png"] forState:UIControlStateNormal]:[button setBackgroundImage:[[CVLocalizationSetting sharedInstance] imgWithContentsOfFile:@"whiteButton.png"] forState:UIControlStateNormal];
+            button.titleLabel.font=[UIFont fontWithName:@"ArialRoundedMTBold"size:20];
+            [button addTarget:self action:@selector(selectButton:) forControlEvents:UIControlEventTouchUpInside];
+            button.tag=i;
+            [scroll addSubview:button];
+            if (i==0) {
+                [self selectButton:button];
+            }
+            [_classArray addObject:button];
+            i++;
+            //            }
         }
         NSArray *array=[[NSArray alloc] initWithObjects:@"确认",@"删除",@"取消", nil];
         i=0;
@@ -83,7 +83,8 @@
             UIButton *button=[UIButton buttonWithType:UIButtonTypeCustom];
             [button setTitle:str forState:UIControlStateNormal];
             button.frame=CGRectMake(200+75*i, frame.size.height-75, 70, 40);
-            button.backgroundColor=[UIColor blueColor];
+            [button setBackgroundImage:[UIImage imageNamed:@"AlertViewButton.png"] forState:UIControlStateNormal];
+            //            button.backgroundColor=[UIColor blueColor];
             [button addTarget:self action:@selector(buttonClick:) forControlEvents:UIControlEventTouchUpInside];
             button.tag=i;
             [self addSubview:button];
@@ -141,17 +142,18 @@
                 [vAddition addSubview:btn];
                 [btn addTarget:self action:@selector(addCustiomAddition) forControlEvents:UIControlEventTouchUpInside];
                 [ary addObject:vAddition];
-//                [_buttonArray addObject:ary];
+                //                [_buttonArray addObject:ary];
                 /**
                  *  查询每一个附加项并生成按钮
                  */
                 int i=0;
-//                NSArray *array1=[array objectForKey:@"addition"];
+                //                NSArray *array1=[array objectForKey:@"addition"];
                 for (NSDictionary *dict in aryCustomAdditions) {
                     AKComboButton *button=[AKComboButton buttonWithType:UIButtonTypeCustom];
-                    button.frame=CGRectMake(i%4*135+10,i/4*90+50,120,80);
-                    [button setTitle:[dict objectForKey:@"FoodFuJia_Des"] forState:UIControlStateNormal];
-                    [button setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
+                    button.frame=CGRectMake(i%4*130+5,i/4*90+50,130,80);
+                    button.titleLabel1.frame=CGRectMake(85, 55, 25, 25);
+                    [button setTitle:[dict objectForKey:@"FNAME"] forState:UIControlStateNormal];
+                    //                    [button setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
                     button.titleLabel.font=[UIFont fontWithName:@"ArialRoundedMTBold"size:20];
                     [button addTarget:self action:@selector(btnClick:) forControlEvents:UIControlEventTouchUpInside];
                     button.dataInfo=dict;
@@ -166,27 +168,28 @@
                 
             }else
             {
-            int i=0;
-            
-            /**
-             *  查询每一个附加项并生成按钮
-             */
-            for (NSDictionary *dict in array) {
-                AKComboButton *button=[AKComboButton buttonWithType:UIButtonTypeCustom];
-                button.frame=CGRectMake(i%4*135+10,i/4*90,120,80);
-                [button setTitle:[dict objectForKey:@"FoodFuJia_Des"] forState:UIControlStateNormal];
-                [button setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
-                button.titleLabel.font=[UIFont fontWithName:@"ArialRoundedMTBold"size:20];
-                [button addTarget:self action:@selector(btnClick:) forControlEvents:UIControlEventTouchUpInside];
-                button.dataInfo=dict;
-                [button setBackgroundImage:[[CVLocalizationSetting sharedInstance] imgWithContentsOfFile:@"product.png"] forState:UIControlStateNormal];
-                button.tag=i;
-                button.selected=NO;
-                button.btnTag=btn.tag;
-                [ary addObject:button];
-                i++;
-            }
-            [_buttonArray addObject:ary];
+                int i=0;
+                
+                /**
+                 *  查询每一个附加项并生成按钮
+                 */
+                for (NSDictionary *dict in array) {
+                    AKComboButton *button=[AKComboButton buttonWithType:UIButtonTypeCustom];
+                    button.frame=CGRectMake(i%4*110+5,i/4*90,110,80);
+                    button.titleLabel1.frame=CGRectMake(85, 55, 25, 25);
+                    [button setTitle:[dict objectForKey:@"FNAME"] forState:UIControlStateNormal];
+                    //                [button setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
+                    button.titleLabel.font=[UIFont fontWithName:@"ArialRoundedMTBold"size:20];
+                    [button addTarget:self action:@selector(btnClick:) forControlEvents:UIControlEventTouchUpInside];
+                    button.dataInfo=dict;
+                    [button setBackgroundImage:[[CVLocalizationSetting sharedInstance] imgWithContentsOfFile:@"product.png"] forState:UIControlStateNormal];
+                    button.tag=i;
+                    button.selected=NO;
+                    button.btnTag=btn.tag;
+                    [ary addObject:button];
+                    i++;
+                }
+                [_buttonArray addObject:ary];
             }
         }
         /**
@@ -201,6 +204,7 @@
                  *  改变选中按钮按钮的图片
                  */
                 for (AKComboButton *button in array) {
+                    
                     if ([_buttonArray lastObject]==array) {
                         if (![button isEqual:[array objectAtIndex:0]]) {
                             btn.selected=YES;
@@ -210,11 +214,11 @@
                         
                     }else
                     {
-                    if ([[button.dataInfo objectForKey:@"pk_redefine"] isEqualToString:[dict objectForKey:@"pk_redefine"]]) {
-                        btn.selected=YES;
-                        [button setBackgroundImage:[[CVLocalizationSetting sharedInstance] imgWithContentsOfFile:@"OrderBG.png"] forState:UIControlStateNormal];
-                        button.titleLabel1.text=[dict objectForKey:@"total"];
-                    }
+                        if ([[button.dataInfo objectForKey:@"pk_redefine"] isEqualToString:[dict objectForKey:@"pk_redefine"]]) {
+                            btn.selected=YES;
+                            [button setBackgroundImage:[[CVLocalizationSetting sharedInstance] imgWithContentsOfFile:@"OrderBG.png"] forState:UIControlStateNormal];
+                            button.titleLabel1.text=[dict objectForKey:@"total"];
+                        }
                     }
                 }
             }
@@ -229,7 +233,7 @@
             [_scrollView setContentSize:CGSizeMake(600, [[_buttonArray objectAtIndex:btn.tag] count]/4*90+200)];
         }else
         {
-             [_scrollView setContentSize:CGSizeMake(480, [[_buttonArray objectAtIndex:btn.tag] count]/4*90+90)];
+            [_scrollView setContentSize:CGSizeMake(480, [[_buttonArray objectAtIndex:btn.tag] count]/4*90+90)];
         }
         
     }
@@ -241,10 +245,10 @@
 {
     if ([_barAddition.text length]>0){
         for (NSDictionary *dic in aryCustomAdditions){
-            if ([[dic objectForKey:@"FoodFuJia_Des"] isEqualToString:_barAddition.text])
+            if ([[dic objectForKey:@"FNAME"] isEqualToString:_barAddition.text])
                 return;
         }
-        NSMutableDictionary *dicToAdd = [NSMutableDictionary dictionaryWithObjectsAndKeys:_barAddition.text,@"FoodFuJia_Des",@"0.0",@"Fprice",@"1",@"total",_barAddition.text,@"pk_redefine", nil];
+        NSMutableDictionary *dicToAdd = [NSMutableDictionary dictionaryWithObjectsAndKeys:_barAddition.text,@"FNAME",@"0.0",@"FPRICE",@"1",@"total",_barAddition.text,@"pk_redefine", nil];
         [_selectArray addObject:dicToAdd];
         int i=0;
         i=[_buttonArray count];
@@ -255,7 +259,7 @@
         [aryCustomAdditions addObject:dicToAdd];
         [self selectButton:button];
     }
-
+    
 }
 /**
  *  附加项按钮事件
@@ -306,9 +310,7 @@
     }else
     {
         for (NSMutableDictionary *dict in _selectArray) {
-            if ([[dict objectForKey:@"pk_redefine"] isEqualToString:[btn.dataInfo objectForKey:@"pk_redefine"]]) {
-//                [dict setObject:btn.titleLabel1.text forKey:@"total"];
-                
+            if ([[dict objectForKey:@"FCODE"] isEqualToString:[btn.dataInfo objectForKey:@"FCODE"]]) {
                 [dict setObject:btn.titleLabel1.text forKey:@"total"];
                 break;
             }
@@ -355,12 +357,12 @@
 }
 //-(void)searchBar:(UISearchBar *)searchBar textDidChange:(NSString *)searchText
 /*
-// Only override drawRect: if you perform custom drawing.
-// An empty implementation adversely affects performance during animation.
-- (void)drawRect:(CGRect)rect
-{
-    // Drawing code
-}
-*/
+ // Only override drawRect: if you perform custom drawing.
+ // An empty implementation adversely affects performance during animation.
+ - (void)drawRect:(CGRect)rect
+ {
+ // Drawing code
+ }
+ */
 
 @end

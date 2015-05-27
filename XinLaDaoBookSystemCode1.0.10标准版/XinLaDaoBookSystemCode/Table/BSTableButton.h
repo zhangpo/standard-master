@@ -24,10 +24,7 @@ typedef enum{
 
 @protocol BSTableButtonDelegate
 
-//- (void)tableClicked:(BSTableButton *)btn;
-- (int)indexOfButtonCoveredPoint:(CGPoint)pt;
-
-- (void)replaceOldTable:(int)oldIndex withNewTable:(int)newIndex;
+-(void)buildTable:(NSDictionary *)info;
 
 @end
 
@@ -39,7 +36,6 @@ typedef enum{
     __weak id<BSTableButtonDelegate>_delegate;
     
     BOOL isMoving;
-    
     CGPoint ptStart;
     UILabel *_manTitle;
     UIImageView *imgvCopy;
@@ -47,7 +43,8 @@ typedef enum{
 
 
 @property (nonatomic,assign) BSTableType tableType;
-@property (nonatomic,copy) NSString *tableTitle;
-@property(nonatomic,copy)UILabel *manTitle;
+@property (nonatomic,strong) NSString *tableTitle;
+@property(nonatomic,strong)NSDictionary *tableDic;
+@property(nonatomic,strong)UILabel *manTitle;
 @property (nonatomic,weak)__weak id<BSTableButtonDelegate> delegate;
 @end

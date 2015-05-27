@@ -15,16 +15,23 @@
 #import "AKsIsVipShowView.h"
 #import "SVProgressHUD.h"
 #import "CVLocalizationSetting.h"
+#import "SearchCoreManager.h"
+#import "SearchBage.h"
 @interface AKSelectCheck ()
 //20111121
 @end
 
 @implementation AKSelectCheck
 {
-    NSMutableArray *_dataArray;
-    UITableView *table;
-    AKMySegmentAndView *akv;
+    NSMutableArray      *_dataArray;
+    NSMutableArray      *_orderArray;
+    UITableView         *_foodtable;
+    UITableView         *_orderTable;
     AKsIsVipShowView    *showVip;
+    UISearchBar         *_orderSearch;
+    NSMutableDictionary        *_searchDic;
+    NSMutableArray      *searchByName;
+    NSMutableArray      *searchByPhone;
 }
 
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
@@ -32,31 +39,91 @@
     self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil];
     if (self) {
         // Custom initialization
+        [[SearchCoreManager share] Reset];
     }
     return self;
 }
 -(void)viewWillAppear:(BOOL)animated
 {
     [super viewWillAppear:animated];
-    
-    
-    
     _dataArray=[[NSMutableArray alloc] init];
     [SVProgressHUD showProgress:-1 status:[[CVLocalizationSetting sharedInstance] localizedString:@"load..."] maskType:SVProgressHUDMaskTypeBlack];
-    NSThread *thread=[[NSThread alloc] initWithTarget:self selector:@selector(queryProduct) object:nil];
+    NSThread *thread=[[NSThread alloc] initWithTarget:self selector:@selector(queryAllOrders) object:nil];
     [thread start];
     
-    [AKsNetAccessClass sharedNetAccess].showVipMessageDict=nil;
+//    [AKsNetAccessClass sharedNetAccess].showVipMessageDict=nil;
     
+}
+-(void)queryAllOrders
+{
+    BSDataProvider *dp=[[BSDataProvider alloc] init];
+    NSDictionary *dict  =[dp queryAllOrders];
+    [SVProgressHUD dismiss];
+    if ([[dict objectForKey:@"tag"] intValue]==0) {
+        searchByName=[NSMutableArray array];
+        searchByPhone=[NSMutableArray array];
+        
+        _searchDic=[[NSMutableDictionary alloc] init];
+        _orderArray=[dict objectForKey:@"message"];
+        for (int i=0; i<[_orderArray count]; i++) {
+            NSDictionary *dict1=[_orderArray objectAtIndex:i];
+            [dict1 setValue:[NSNumber numberWithInt:i] forKey:@"ID"];
+            [_searchDic setObject:dict1 forKey:[dict1 objectForKey:@"ID"]];
+            [[SearchCoreManager share] AddContact:[NSNumber numberWithInt:i] name:[dict1 objectForKey:@"orderid"] phone:[NSArray arrayWithObjects:[dict1 objectForKey:@"Tablename"], nil]];
+        }
+        [_orderTable reloadData];
+        NSIndexPath *first = [NSIndexPath indexPathForRow:0 inSection:0];
+        [_orderTable selectRowAtIndexPath:first animated:YES scrollPosition:UITableViewScrollPositionTop];
+        [self queryProduct:[[_orderArray objectAtIndex:0] objectForKey:@"orderid"]];
+        
+    }else
+    {
+        UIAlertView *alert=[[UIAlertView alloc] initWithTitle:nil message:[dict objectForKey:@"message"] delegate:nil cancelButtonTitle:@"确认" otherButtonTitles:nil];
+        [alert show];
+    }
+}
+- (void)searchBar:(UISearchBar *)_searchBar textDidChange:(NSString *)searchText
+{
+    [[SearchCoreManager share] Search:searchText searchArray:nil nameMatch:searchByName phoneMatch:searchByPhone];
+    [_orderTable reloadData];
 }
 - (void)viewDidLoad
 {
     [super viewDidLoad];
 	// Do any additional setup after loading the view.
     self.view.backgroundColor=[UIColor whiteColor];
-    UIImageView *view=[[UIImageView alloc] initWithFrame:CGRectMake(0, 120-60, 164, 1024-114+60)];
-    view.image=[[CVLocalizationSetting sharedInstance] imgWithContentsOfFile:@"SelectOrder.jpg"];
-    [self.view addSubview:view];
+    AKMySegmentAndView *akv=[AKMySegmentAndView shared];
+    akv.delegate=self;
+    akv.frame=CGRectMake(0, 0, 768, 114);
+    [akv segmentShow:NO];
+    [akv shoildCheckShow:NO];
+    [self.view addSubview:akv];
+    [self searchBarInit];
+    _orderTable=[[UITableView alloc] initWithFrame:CGRectMake(10, 100, 260, 1024-200) style:UITableViewStylePlain];
+//    _orderTable.backgroundColor=[UIColor redColor];
+    _orderTable.separatorStyle = UITableViewCellSeparatorStyleNone;
+    _orderTable.delegate=self;
+    _orderTable.dataSource=self;
+    
+    _orderTable.layer.masksToBounds = YES;
+    //给图层添加一个有色边框
+    
+    _orderTable.layer.borderWidth = 2;
+    _orderTable.layer.borderColor = [[UIColor blackColor] CGColor];
+    
+    [self.view addSubview:_orderTable];
+    _foodtable=[[UITableView alloc] initWithFrame:CGRectMake(270,120-70, 768-280, 1024-210+60) style:UITableViewStylePlain];
+//    _foodtable.backgroundColor=[UIColor blueColor];
+
+    _foodtable.layer.masksToBounds = YES;
+    //给图层添加一个有色边框
+    
+    _foodtable.layer.borderWidth = 2;
+    _foodtable.layer.borderColor = [[UIColor blackColor] CGColor];
+    _foodtable.separatorStyle = UITableViewCellSeparatorStyleNone;
+    _foodtable.delegate=self;
+    _foodtable.dataSource=self;
+    [self.view addSubview:_foodtable];
     UIButton *btn=[UIButton buttonWithType:UIButtonTypeRoundedRect];
     btn.frame=CGRectMake((768-164)/2+60,1004-54, 135, 54);
     UILabel *lb=[[UILabel alloc] initWithFrame:CGRectMake(10,20, 120, 30)];
@@ -69,18 +136,16 @@
     [btn setBackgroundImage:[[CVLocalizationSetting sharedInstance] imgWithContentsOfFile:@"cv_rotation_normal_button.png"] forState:UIControlStateNormal];
     [btn setBackgroundImage:[[CVLocalizationSetting sharedInstance] imgWithContentsOfFile:@"cv_rotation_highlight_button.png"] forState:UIControlStateHighlighted];
     [self.view addSubview:btn];
-    
-//    UIButton *btn=[UIButton buttonWithType:UIButtonTypeCustom];
-//    btn.frame=CGRectMake((768-164)/2+60,940, 120, 60);
-//    [btn setTitle: forState:UIControlStateNormal];
-//    [btn setBackgroundImage:[[CVLocalizationSetting sharedInstance] imgWithContentsOfFile:@"TableButtonRed"] forState:UIControlStateNormal];
-//
-//    [self.view addSubview:btn];
 }
--(void)queryProduct
+/**
+ *  查询账单
+ *
+ *  @param orderId 账单号
+ */
+-(void)queryProduct:(NSString *)orderId
 {
     BSDataProvider *dp=[[BSDataProvider alloc] init];
-    _dataArray=[dp queryProduct:[Singleton sharedSingleton].Seat];
+    _dataArray=[dp queryProduct1:orderId];
     [SVProgressHUD dismiss];
     if ([_dataArray count]==0) {
         UIAlertView *alert=[[UIAlertView alloc] initWithTitle:@"提示" message:@"查询结果为空或连接超时，请稍后重试" delegate:self cancelButtonTitle:@"确认" otherButtonTitles: nil];
@@ -92,98 +157,59 @@
             [alert show];
         }
         else {
-            table=[[UITableView alloc] initWithFrame:CGRectMake(164,120-60, 768-164, 1024-220+60) style:UITableViewStylePlain];
-            table.separatorStyle = UITableViewCellSeparatorStyleNone;
-            table.delegate=self;
-            table.dataSource=self;
-            [self.view addSubview:table];
+            [_foodtable reloadData];
         }
     }
-    akv=[[AKMySegmentAndView alloc]init];
-    akv.delegate=self;
-    akv.frame=CGRectMake(0, 0, 768, 114);
-    NSLog(@"%@",[akv subviews]);
-    //    for (int i=1; i<[akv.subviews count]; i++)
-    //    {
-    //        [[akv.subviews lastObject]removeFromSuperview];
-    //    }
-    [[akv.subviews objectAtIndex:1]removeFromSuperview];
-    [self.view addSubview:akv];
-    //    [akv removeFromSuperview];
-    //    akv=nil;
-    //    akv= [[AKMySegmentAndView alloc] init];
-    //    akv.delegate=self;
-    //    akv.frame=CGRectMake(0, 0, 768, 114);
-    //    [[akv.subviews objectAtIndex:1]removeFromSuperview];
-    //    [self.view addSubview:akv];
+    
 }
 -(void)btnClick
 {
     [self.navigationController popViewControllerAnimated:YES];
 }
-//-(UIView *)tableView:(UITableView *)tableView viewForHeaderInSection:(NSInteger)section
-//{
-//    UIView *view=[[UIView alloc] initWithFrame:CGRectMake(0, 0, 768, 60)];
-//    UILabel *lb=[[UILabel alloc] initWithFrame:CGRectMake(0, 0, 768, 30)];
-//    UILabel *lb1=[[UILabel alloc] initWithFrame:CGRectMake(0,30, 768, 30)];
-//    [view addSubview:lb1];
-//    [view addSubview:lb];
-//    if (section==0) {
-//        lb.text=@"已点菜品";
-//        NSArray *array=[_dataArray objectAtIndex:0];
-//        int i=0;
-//        int j=0;
-//        for (AKsCanDanListClass *caidan in array) {
-//            if (![caidan.tpname isEqualToString:caidan.pcname]) {
-//
-//            }else
-//            {
-//                i+=[caidan.pcount intValue];
-//                j+=[caidan.price intValue];
-//            }
-//        }
-//        lb1.text=[NSString stringWithFormat:@"共点菜品%d道,总计%d元",i,j];
-//        return view;
-//    }
-//    else
-//    {
-//        view.frame=CGRectMake(0, 0, 768, 30);
-//        lb1.text=@"结算方式";
-//        return view;
-//    }
-//}
--(NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section
-{
-    if (section==0) {
-        return @"已点菜品";
-    }else if (section==1){
-        return @"全单附加项";
-    }
-    else
-    {
-        return @"结算方式";
-    }
-}
+
 -(NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
+    if ([tableView isEqual:_orderTable]) {
+        if ([_orderSearch.text length]<=0) {
+            return [_orderArray count];
+        }else
+        {
+            return [searchByName count] + [searchByPhone count];
+        }
+        
+    }else
+    {
     return [[_dataArray objectAtIndex:section] count];
+    }
 }
 -(NSInteger)numberOfSectionsInTableView:(UITableView *)tableView
 {
-    return [_dataArray count];
+    if ([tableView isEqual:_orderTable]) {
+        return 1;
+    }else
+    {
+        return [_dataArray count];
+    }
+    
 }
 -(CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    
     return 60;
 }
 -(CGFloat)tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section
 {
+    if ([tableView isEqual:_orderTable])
+    {
+        return 40;
+    }else
+    {
+    
     if (section==0) {
         return 70;
     }else
     {
         return 40;
+    }
     }
     
 }
@@ -191,6 +217,19 @@
 {
     UIView *view=[[UIView alloc] initWithFrame:CGRectMake(0, 0, 768-164, 70)];
     view.backgroundColor=[UIColor lightGrayColor];
+    if ([tableView isEqual:_orderTable]) {
+        view.frame=CGRectMake(0, 0, 768-164, 40);
+        UILabel *lb1=[[UILabel alloc] initWithFrame:CGRectMake(30,0,100, 40)];
+        lb1.text=@"账单号";
+        lb1.backgroundColor=[UIColor clearColor];
+        lb1.textAlignment=NSTextAlignmentCenter;
+        [view addSubview:lb1];
+        UILabel *lb2=[[UILabel alloc] initWithFrame:CGRectMake(170, 0,59, 40)];
+        lb2.text=@"台位号";
+        lb2.backgroundColor=[UIColor clearColor];
+        [view addSubview:lb2];
+    }else
+    {
     if (section==0) {
         float i=0.0;
         float j=0.0;
@@ -227,13 +266,13 @@
         
         lb3.textAlignment=NSTextAlignmentRight;
         [view addSubview:lb3];
-        UILabel *lb4=[[UILabel alloc] initWithFrame:CGRectMake(100+59*2, 30, 59, 40)];
-        lb4.text=@"单位";
-        lb4.backgroundColor=[UIColor clearColor];
+//        UILabel *lb4=[[UILabel alloc] initWithFrame:CGRectMake(100+59*2, 30, 59, 40)];
+//        lb4.text=@"单位";
+//        lb4.backgroundColor=[UIColor clearColor];
         
-        lb4.textAlignment=NSTextAlignmentRight;
-        [view addSubview:lb4];
-        UILabel *lb5=[[UILabel alloc] initWithFrame:CGRectMake(100+59*3, 30, 300, 40)];
+//        lb4.textAlignment=NSTextAlignmentRight;
+//        [view addSubview:lb4];
+        UILabel *lb5=[[UILabel alloc] initWithFrame:CGRectMake(100+59*2, 30, 268, 40)];
         lb5.backgroundColor=[UIColor clearColor];
         
         lb5.textAlignment=NSTextAlignmentCenter;
@@ -264,12 +303,55 @@
         [view addSubview:lb1];
         
     }
+    }
     return view;
 }
 -(UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
+    if ([tableView isEqual:_orderTable])
+    {
+        static NSString *cellName1=@"ordercell";
+        UITableViewCell *cell=[tableView dequeueReusableCellWithIdentifier:cellName1];
+        if (!cell) {
+            cell=[[UITableViewCell  alloc] initWithStyle:UITableViewCellStyleValue1 reuseIdentifier:cellName1];
+        }
+        cell.textLabel.text=@"";
+        cell.detailTextLabel.text=@"";
+        if ([_orderSearch.text length]<=0) {
+            cell.textLabel.text=[[_orderArray objectAtIndex:indexPath.row] objectForKey:@"orderid"];
+            cell.detailTextLabel.text=[[_orderArray objectAtIndex:indexPath.row] objectForKey:@"Tablename"];
+            cell.detailTextLabel.textColor=[UIColor blackColor];
+            return cell;
+        }
+        NSNumber *localID = nil;
+        NSMutableString *matchString = [NSMutableString string];
+        NSMutableArray *matchPos = [NSMutableArray array];
+        if (indexPath.row < [searchByName count]) {
+            localID = [searchByName objectAtIndex:indexPath.row];
+            
+            //姓名匹配 获取对应匹配的拼音串 及高亮位置
+            if ([_orderSearch.text length]) {
+                [[SearchCoreManager share] GetPinYin:localID pinYin:matchString matchPos:matchPos];
+            }
+        } else {
+            localID = [searchByPhone objectAtIndex:indexPath.row-[searchByName count]];
+            NSMutableArray *matchPhones = [NSMutableArray array];
+            
+            //号码匹配 获取对应匹配的号码串 及高亮位置
+            if ([_orderSearch.text length]) {
+                [[SearchCoreManager share] GetPhoneNum:localID phone:matchPhones matchPos:matchPos];
+                [matchString appendString:[matchPhones objectAtIndex:0]];
+            }
+        }
+//        ContactPeople *contact = [self.contactDic objectForKey:localID];
+        NSDictionary   *dict=[_searchDic objectForKey:localID];
+        cell.textLabel.text = [dict objectForKey:@"orderid"];
+        cell.detailTextLabel.text = [dict objectForKey:@"Tablename"];
+        return cell;
+        
+    }else{
     static NSString *cellName=@"cell";
-    AKSelectCheckCell *cell=[table dequeueReusableCellWithIdentifier:cellName];
+    AKSelectCheckCell *cell=[tableView dequeueReusableCellWithIdentifier:cellName];
     if (!cell) {
         cell=[[AKSelectCheckCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:cellName];
     }
@@ -289,7 +371,7 @@
         cell.count1.text=((AKsCanDanListClass *)[[_dataArray objectAtIndex:indexPath.section] objectAtIndex:indexPath.row]).pcount;
         cell.price.text=[NSString stringWithFormat:@"%.2f",[((AKsCanDanListClass *)[[_dataArray objectAtIndex:indexPath.section] objectAtIndex:indexPath.row]).price floatValue]];
         cell.price.textAlignment=NSTextAlignmentRight;
-        cell.unit.text=((AKsCanDanListClass *)[[_dataArray objectAtIndex:indexPath.section] objectAtIndex:indexPath.row]).unit;
+//        cell.unit.text=((AKsCanDanListClass *)[[_dataArray objectAtIndex:indexPath.section] objectAtIndex:indexPath.row]).unit;
         cell.addition.text=[NSString stringWithFormat:@"%@   %@",((AKsCanDanListClass *)[[_dataArray objectAtIndex:indexPath.section] objectAtIndex:indexPath.row]).fujianame,((AKsCanDanListClass *)[[_dataArray objectAtIndex:indexPath.section] objectAtIndex:indexPath.row]).fujiaprice];
     }
     else if(indexPath.section==1){
@@ -297,7 +379,7 @@
         cell.textLabel.text=[[_dataArray objectAtIndex:indexPath.section] objectAtIndex:indexPath.row];
     }else if(indexPath.section==2){
         cell.count1.frame=CGRectMake(0, 0, 0, 0);
-        cell.unit.frame=CGRectMake(0, 0, 0, 0);
+//        cell.unit.frame=CGRectMake(0, 0, 0, 0);
         cell.addition.frame=CGRectMake(0, 0, 0, 0);
         //        cell.lb.frame=CGRectMake(0, 0, 0, 0);
         cell.name.frame=CGRectMake(0, 0, 250, 60);
@@ -307,27 +389,42 @@
         
     }
     return cell;
+    }
 }
-
-#pragma mark  AKMySegmentAndViewDelegate
--(void)showVipMessageView:(NSArray *)array andisShowVipMessage:(BOOL)isShowVipMessage
+- (void)searchBarInit {
+    _orderSearch= [[UISearchBar alloc] initWithFrame:CGRectMake(10, 45, 260, 50)];
+    _orderSearch.autocorrectionType = UITextAutocorrectionTypeNo;
+	_orderSearch.autocapitalizationType = UITextAutocapitalizationTypeNone;
+	_orderSearch.keyboardType = UIKeyboardTypeDefault;
+	_orderSearch.backgroundColor=[UIColor clearColor];
+	_orderSearch.translucent=YES;
+	_orderSearch.placeholder=@"搜索";
+	_orderSearch.delegate = self;
+	_orderSearch.barStyle=UIBarStyleDefault;
+    [self.view addSubview:_orderSearch];
+    
+}
+-(void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    if(isShowVipMessage)
-    {
-        [showVip removeFromSuperview];
-        showVip=nil;
-    }
-    else
-    {
-        showVip=[[AKsIsVipShowView alloc]initWithArray:array];
-        [self.view addSubview:showVip];
-    }
+     if ([tableView isEqual:_orderTable])
+     {
+         [SVProgressHUD showProgress:-1 status:[[CVLocalizationSetting sharedInstance] localizedString:@"load..."] maskType:SVProgressHUDMaskTypeBlack];
+         UITableViewCell *cell=[_orderTable cellForRowAtIndexPath:indexPath];
+         [self queryProduct:cell.textLabel.text];
+     }
 }
-
 - (void)didReceiveMemoryWarning
 {
     [super didReceiveMemoryWarning];
     // Dispose of any resources that can be recreated.
 }
-
+#pragma mark - 注销登录
+-(void)logout
+{
+    [Singleton sharedSingleton].userInfo=nil;
+    NSArray *array=[self.navigationController viewControllers];
+    if ([array count]>1) {
+        [self.navigationController popToRootViewControllerAnimated:YES];
+    }
+}
 @end

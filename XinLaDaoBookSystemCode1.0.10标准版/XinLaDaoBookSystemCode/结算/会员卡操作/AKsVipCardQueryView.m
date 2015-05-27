@@ -9,11 +9,11 @@
 #import "AKsVipCardQueryView.h"
 #import "CardJuanClass.h"
 #import "PaymentSelect.h"
-#import "AKDataQueryClass.h"
 #import "Singleton.h"
 #import "SVProgressHUD.h"
-#import "AKURLString.h"
 #import "CVLocalizationSetting.h"
+#import "AKURLString.h"
+//#import "AKDataQueryClass.h"
 
 
 @implementation AKsVipCardQueryView
@@ -323,7 +323,7 @@
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillHide) name:UIKeyboardWillHideNotification object:nil];
     
     
-    AKDataQueryClass *data=[[AKDataQueryClass alloc]init];
+//    AKDataQueryClass *data=[[AKDataQueryClass alloc]init];
     
     
     NSArray *numValues;
@@ -645,7 +645,7 @@
     if([[array objectAtIndex:0]isEqualToString:@"0"])
     {
         AKsNetAccessClass *netAccess=[AKsNetAccessClass sharedNetAccess];
-        AKDataQueryClass *data=[[AKDataQueryClass alloc]init];
+//        AKDataQueryClass *data=[[AKDataQueryClass alloc]init];
         
         
         lblCardJiShow.text=[array objectAtIndex:4];

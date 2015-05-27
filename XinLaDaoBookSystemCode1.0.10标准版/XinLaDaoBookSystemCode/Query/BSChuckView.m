@@ -159,7 +159,7 @@
             //        dic = [NSMutableDictionary dictionaryWithObjectsAndKeys:str,@"INIT",nil];
         }else
         {
-            dic = [NSMutableDictionary dictionaryWithObjectsAndKeys:tfAcct.text,@"user",tfPwd.text,@"pwd",_tfcount.text,@"count",str,@"INIT",_tffan.text,@"recount",nil];
+            dic = [NSMutableDictionary dictionaryWithObjectsAndKeys:tfAcct.text,@"user",tfPwd.text,@"pwd",str,@"INIT",_tfcount.text,@"count",_tffan.text,@"recount",nil];
         }
         [delegate chuckOrderWithOptions:dic];
     }

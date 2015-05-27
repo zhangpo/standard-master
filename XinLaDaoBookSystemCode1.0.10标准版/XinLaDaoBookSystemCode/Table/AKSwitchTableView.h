@@ -8,6 +8,17 @@
 
 #import "BSRotateView.h"
 
-@interface AKSwitchTableView : BSRotateView
 
+
+@protocol AKSwitchTableViewDelegate
+
+- (void)switchTableWithOptions:(NSDictionary *)info;
+-(void)multipleTableWithOptions:(NSDictionary *)info;
+@end
+
+@interface AKSwitchTableView : UIView<UITableViewDataSource,UITableViewDelegate>
+- (id)initWithFrame:(CGRect)frame withTag:(int)tag;
+@property(nonatomic,strong)NSArray *currentArray;
+@property(nonatomic,strong)NSArray *aimsArray;
+@property (nonatomic,weak)__weak id<AKSwitchTableViewDelegate> delegate;
 @end
